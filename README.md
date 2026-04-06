@@ -1,150 +1,75 @@
-\# AI Metadata Inspector
-
-
+# AI Metadata Inspector
 
 Portable Windows tool to extract AI generation metadata and quickly copy prompts from image and video files via right-click.
 
+![AI Info](screenshots/AI-Info.png)
 
+## Preview
 
-!\[AI Info](screenshots/AI-Info.png)
+### AI Info Window
+![AI Info](screenshots/AI-Info.png)
 
+### Model & Workflow Details
+![AI Info 2](screenshots/AI-Info2.png)
 
+### Right-click Integration
+![Context Menu](screenshots/right-click.png)
 
-\## Preview
+## Features
 
+- Extract AI generation metadata from PNG and MP4 files
+- Copy positive and negative prompts directly from the Windows right-click menu
+- Display detailed metadata in a clean and fast info window
+- Supports ComfyUI workflows and A1111-style metadata
+- Fully portable (embedded Python, no external dependencies)
+- Silent execution (no console windows)
 
+## Supported Formats
 
-\### AI Info Window
+### PNG
+- ComfyUI prompt JSON
+- A1111-style text metadata
 
-!\[AI Info](screenshots/AI-Info.png)
+### MP4
+- ComfyUI workflow JSON
+- Multi-sampler workflows supported
 
-
-
-\### Model \& Workflow Details
-
-!\[AI Info 2](screenshots/AI-Info2.png)
-
-
-
-\### Right-click Integration
-
-!\[Context Menu](screenshots/right-click.png)
-
-
-
-\## Features
-
-
-
-\- Extract AI generation metadata from PNG and MP4 files
-
-\- Copy positive and negative prompts directly from the Windows right-click menu
-
-\- Display detailed metadata in a clean and fast info window
-
-\- Supports ComfyUI workflows and A1111-style metadata
-
-\- Fully portable (embedded Python, no external dependencies)
-
-\- Silent execution (no console windows)
-
-
-
-\## Supported Formats
-
-
-
-\### PNG
-
-\- ComfyUI prompt JSON
-
-\- A1111-style text metadata
-
-
-
-\### MP4
-
-\- ComfyUI workflow JSON
-
-\- Multi-sampler workflows supported
-
-
-
-\## Usage
-
-
+## Usage
 
 After installation:
 
+- Right-click on a PNG or MP4 file
+- Use:
+  - **AI - Copy positive prompt**
+  - **AI - Copy negative prompt**
+  - **AI - Metadata Info**
 
-
-\- Right-click on a PNG or MP4 file
-
-\- Use:
-
-&#x20; - \*\*AI - Copy positive prompt\*\*
-
-&#x20; - \*\*AI - Copy negative prompt\*\*
-
-&#x20; - \*\*AI - Metadata Info\*\*
-
-
-
-\## Installation
-
-
+## Installation
 
 Download the latest installer from the Releases section:
 
-
-
-<https://github.com/Gaurox/AI-Metadata-Inspector/releases>
-
-
+https://github.com/Gaurox/AI-Metadata-Inspector/releases
 
 Run the installer and follow the steps.
 
+## Tech Stack
 
+- Python (embedded)
+- ExifTool
+- PowerShell + WinForms
+- VBS launcher
+- Inno Setup
 
-\## Tech Stack
+## Notes
 
+- Optimized for ComfyUI workflows
+- Partial support for other metadata formats
+- Windows 10 / 11 only
 
-
-\- Python (embedded)
-
-\- ExifTool
-
-\- PowerShell + WinForms
-
-\- VBS launcher
-
-\- Inno Setup
-
-
-
-\## Notes
-
-
-
-\- Optimized for ComfyUI workflows
-
-\- Partial support for other metadata formats
-
-\- Windows 10 / 11 only
-
-
-
-\## License
-
-
+## License
 
 MIT License
 
-
-
-\## Author
-
-
+## Author
 
 Gaurox
-
