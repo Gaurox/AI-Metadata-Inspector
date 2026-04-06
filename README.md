@@ -1,58 +1,196 @@
-AI Metadata Inspector
-Version: 1.0.0
+\# AI Metadata Inspector
 
-Description
-AI Metadata Inspector is a portable Windows utility for extracting AI generation data from image and video files.
-It integrates into the Windows context menu and runs silently without opening console windows.
 
-Features
-- Extract positive and negative prompts
-- Retrieve generation parameters (seed, steps, CFG, sampler, scheduler, models, LoRAs, VAE, and related metadata)
-- Support both prompt-based and workflow-based metadata
-- Copy extracted data directly to the clipboard
-- Display complete metadata details in a lightweight inspection window
 
-Supported Formats
-- PNG — embedded prompt metadata
-- MP4 — embedded workflow metadata
+Portable Windows tool to extract AI generation metadata and quickly copy prompts from image and video files via right-click.
 
-Usage
-After installation, right-click a supported file and use one of the following actions:
-- Copy positive prompt
-- Copy negative prompt
-- Metadata Info
 
-Installation
-Run the installer.
-It will:
-- Install all required files (embedded Python + ExifTool)
-- Add Windows context menu entries
-- Configure icons and uninstall support
 
-No additional setup is required.
+\---
 
-Architecture
-- Python (embedded, no external dependencies)
-- ExifTool (metadata extraction)
-- PowerShell (WinForms GUI)
-- VBS launcher (silent execution)
-- Inno Setup (installer)
 
-Compatibility
-- Windows 10 / 11
-- Fully portable
-- No external dependencies
 
-Limitations
-- Optimized for ComfyUI-style metadata
-- Compatibility depends on how metadata is embedded
-- Some non-standard workflows or third-party formats may not be fully parsed
+\## Preview
 
-Third-Party Components
-This project includes ExifTool, licensed under the Artistic License 2.0.
-https://exiftool.org/
 
-License
+
+\### AI Info Window
+
+
+
+!\[AI Info](screenshots/AI-Info.png)
+
+
+
+\### Model \& Workflow Details
+
+
+
+!\[AI Info 2](screenshots/AI-Info2.png)
+
+
+
+\### Right-click Integration
+
+
+
+!\[Context Menu](screenshots/right-click.png)
+
+
+
+\---
+
+
+
+\## Features
+
+
+
+\* Extract AI generation metadata from PNG and MP4 files
+
+\* Copy positive and negative prompts directly from the Windows right-click menu
+
+\* Display detailed metadata in a clean and fast info window
+
+\* Supports ComfyUI workflows and A1111-style metadata
+
+\* Fully portable (embedded Python, no external dependencies)
+
+\* Silent execution (no console windows)
+
+
+
+\---
+
+
+
+\## Supported Formats
+
+
+
+\*\*PNG\*\*
+
+
+
+\* ComfyUI prompt JSON
+
+\* A1111-style text metadata
+
+
+
+\*\*MP4\*\*
+
+
+
+\* ComfyUI workflow JSON
+
+\* Multi-sampler workflows supported
+
+
+
+\---
+
+
+
+\## Usage
+
+
+
+After installation:
+
+
+
+\* Right-click on a PNG or MP4 file
+
+\* Use:
+
+
+
+&#x20; \* \*\*AI - Copy positive prompt\*\*
+
+&#x20; \* \*\*AI - Copy negative prompt\*\*
+
+&#x20; \* \*\*AI - Metadata Info\*\*
+
+
+
+\---
+
+
+
+\## Installation
+
+
+
+Download the latest installer from the Releases section:
+
+
+
+👉 https://github.com/Gaurox/AI-Metadata-Inspector/releases
+
+
+
+Run the installer and follow the steps.
+
+
+
+\---
+
+
+
+\## Tech Stack
+
+
+
+\* Python (embedded)
+
+\* ExifTool (metadata extraction)
+
+\* PowerShell + WinForms (GUI)
+
+\* VBS (silent launcher)
+
+\* Inno Setup (installer)
+
+
+
+\---
+
+
+
+\## Notes
+
+
+
+\* Optimized for ComfyUI workflows
+
+\* Partial support for other formats
+
+\* Works on Windows 10 / 11 only
+
+
+
+\---
+
+
+
+\## License
+
+
+
 MIT License
 
-Copyright (c) 2026 Gaurox
+
+
+\---
+
+
+
+\## Author
+
+
+
+Gaurox
+
+
+
