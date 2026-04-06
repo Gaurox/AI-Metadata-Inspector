@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+Output/
+prompt_tool_debug.log
+*.ai_info.txt
+*.ai_info.json
