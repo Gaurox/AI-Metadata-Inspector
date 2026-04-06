@@ -101,7 +101,7 @@ function Show-AIInfoWindow {
        $form.ShowIcon = $true
     }
 
-    $APP_VERSION = "1.1.0"
+    $APP_VERSION = "1.1.1"
     $form.Text = "AI Metadata Inspector v$APP_VERSION"
     $form.StartPosition = "CenterScreen"
     $form.Size = New-Object System.Drawing.Size(1120, 1120)

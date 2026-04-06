@@ -1,6 +1,12 @@
 # AI Metadata Inspector
 
+## 🔧 v1.1.1
+
+- Fixed sampler pass display order in multi-pass workflows
+- High-noise / generation pass is now shown first more reliably
+
 Portable Windows tool to extract AI generation metadata and instantly reuse prompts from image and video files via right-click.
+
 
 ---
 

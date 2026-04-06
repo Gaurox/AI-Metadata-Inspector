@@ -194,6 +194,58 @@ def _extract_sampler_detail(data, node, index: int):
     }
 
 
+def _sort_sampler_details(details):
+    def _to_int(value, default=999999):
+        try:
+            if value is None:
+                return default
+            text = str(value).strip()
+            if text == "":
+                return default
+            return int(float(text))
+        except Exception:
+            return default
+
+    def _flag_enabled(value):
+        return str(value or "").strip().lower() in ("enable", "enabled", "true", "yes", "on")
+
+    def _sort_key(detail):
+        title = str(detail.get("node_title") or detail.get("label") or "").strip().lower()
+        start = _to_int(detail.get("start_at_step"))
+        end = _to_int(detail.get("end_at_step"))
+        steps = _to_int(detail.get("steps"))
+        add_noise_enabled = _flag_enabled(detail.get("add_noise"))
+        leftover_noise_enabled = _flag_enabled(detail.get("return_with_leftover_noise"))
+
+        # Strong heuristics for first generation pass:
+        # 1) explicit "high noise" style naming
+        # 2) add_noise enabled
+        # 3) leftover noise enabled
+        # 4) lower start/end step
+        high_noise_priority = 0 if ("high noise" in title or "high_noise" in title or "high-noise" in title) else 1
+        add_noise_priority = 0 if add_noise_enabled else 1
+        leftover_noise_priority = 0 if leftover_noise_enabled else 1
+
+        # If start is missing but this looks like the generation pass, treat it like 0.
+        effective_start = 0 if (start == 999999 and (add_noise_enabled or "high noise" in title or "high_noise" in title or "high-noise" in title)) else start
+
+        return (
+            high_noise_priority,
+            add_noise_priority,
+            leftover_noise_priority,
+            effective_start,
+            end,
+            steps,
+        )
+
+    ordered = sorted(details, key=_sort_key)
+
+    for idx, detail in enumerate(ordered, start=1):
+        detail["label"] = f"Sampler Pass {idx}"
+
+    return ordered
+
+
 def collect_sampler_details(data):
     nodes = _iter_nodes_with_ids(data)
     out = []
@@ -225,7 +277,7 @@ def collect_sampler_details(data):
             out.append(detail)
             idx += 1
 
-    return out
+    return _sort_sampler_details(out)
 
 
 def pick_primary_sampler_detail(details):
