@@ -6,7 +6,7 @@ Portable Windows tool to extract AI generation metadata and quickly copy prompts
 
 
 
-\---
+!\[AI Info](screenshots/AI-Info.png)
 
 
 
@@ -16,15 +16,11 @@ Portable Windows tool to extract AI generation metadata and quickly copy prompts
 
 \### AI Info Window
 
-
-
 !\[AI Info](screenshots/AI-Info.png)
 
 
 
 \### Model \& Workflow Details
-
-
 
 !\[AI Info 2](screenshots/AI-Info2.png)
 
@@ -32,13 +28,7 @@ Portable Windows tool to extract AI generation metadata and quickly copy prompts
 
 \### Right-click Integration
 
-
-
 !\[Context Menu](screenshots/right-click.png)
-
-
-
-\---
 
 
 
@@ -46,21 +36,17 @@ Portable Windows tool to extract AI generation metadata and quickly copy prompts
 
 
 
-\* Extract AI generation metadata from PNG and MP4 files
+\- Extract AI generation metadata from PNG and MP4 files
 
-\* Copy positive and negative prompts directly from the Windows right-click menu
+\- Copy positive and negative prompts directly from the Windows right-click menu
 
-\* Display detailed metadata in a clean and fast info window
+\- Display detailed metadata in a clean and fast info window
 
-\* Supports ComfyUI workflows and A1111-style metadata
+\- Supports ComfyUI workflows and A1111-style metadata
 
-\* Fully portable (embedded Python, no external dependencies)
+\- Fully portable (embedded Python, no external dependencies)
 
-\* Silent execution (no console windows)
-
-
-
-\---
+\- Silent execution (no console windows)
 
 
 
@@ -68,27 +54,19 @@ Portable Windows tool to extract AI generation metadata and quickly copy prompts
 
 
 
-\*\*PNG\*\*
+\### PNG
+
+\- ComfyUI prompt JSON
+
+\- A1111-style text metadata
 
 
 
-\* ComfyUI prompt JSON
+\### MP4
 
-\* A1111-style text metadata
+\- ComfyUI workflow JSON
 
-
-
-\*\*MP4\*\*
-
-
-
-\* ComfyUI workflow JSON
-
-\* Multi-sampler workflows supported
-
-
-
-\---
+\- Multi-sampler workflows supported
 
 
 
@@ -100,21 +78,15 @@ After installation:
 
 
 
-\* Right-click on a PNG or MP4 file
+\- Right-click on a PNG or MP4 file
 
-\* Use:
+\- Use:
 
+&#x20; - \*\*AI - Copy positive prompt\*\*
 
+&#x20; - \*\*AI - Copy negative prompt\*\*
 
-&#x20; \* \*\*AI - Copy positive prompt\*\*
-
-&#x20; \* \*\*AI - Copy negative prompt\*\*
-
-&#x20; \* \*\*AI - Metadata Info\*\*
-
-
-
-\---
+&#x20; - \*\*AI - Metadata Info\*\*
 
 
 
@@ -126,7 +98,7 @@ Download the latest installer from the Releases section:
 
 
 
-👉 https://github.com/Gaurox/AI-Metadata-Inspector/releases
+<https://github.com/Gaurox/AI-Metadata-Inspector/releases>
 
 
 
@@ -134,27 +106,19 @@ Run the installer and follow the steps.
 
 
 
-\---
-
-
-
 \## Tech Stack
 
 
 
-\* Python (embedded)
+\- Python (embedded)
 
-\* ExifTool (metadata extraction)
+\- ExifTool
 
-\* PowerShell + WinForms (GUI)
+\- PowerShell + WinForms
 
-\* VBS (silent launcher)
+\- VBS launcher
 
-\* Inno Setup (installer)
-
-
-
-\---
+\- Inno Setup
 
 
 
@@ -162,15 +126,11 @@ Run the installer and follow the steps.
 
 
 
-\* Optimized for ComfyUI workflows
+\- Optimized for ComfyUI workflows
 
-\* Partial support for other formats
+\- Partial support for other metadata formats
 
-\* Works on Windows 10 / 11 only
-
-
-
-\---
+\- Windows 10 / 11 only
 
 
 
@@ -182,15 +142,9 @@ MIT License
 
 
 
-\---
-
-
-
 \## Author
 
 
 
 Gaurox
-
-
 
