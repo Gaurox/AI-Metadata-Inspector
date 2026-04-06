@@ -1,5 +1,5 @@
 #define MyAppName "AI Metadata Inspector"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Gaurox"
 #define MyAppURL "https://github.com/Gaurox/AI-Metadata-Inspector"
 
@@ -31,8 +31,8 @@ SetupIconFile=icons\info.ico
 AllowNoIcons=yes
 UsePreviousAppDir=yes
 
-VersionInfoVersion=1.0.0.0
-VersionInfoTextVersion=1.0.0
+VersionInfoVersion=1.1.0.0
+VersionInfoTextVersion=1.1.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -120,6 +120,3 @@ Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt\c
 Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueData: "AI - Metadata Info"; Flags: uninsdeletekey
 Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\info.ico"; Flags: uninsdeletevalue
 Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" info"; Flags: uninsdeletekey
-
-[Run]
-Filename: "{app}\README.md"; Description: "Open README"; Flags: postinstall shellexec skipifsilent

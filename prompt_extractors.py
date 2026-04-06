@@ -55,6 +55,10 @@ def extract_a1111_params(text: str):
     if m:
         out["seed"] = m.group(1).strip()
 
+    m = re.search(r"(?:^|,\s*)Denoising strength:\s*([^,\n]+)", clean, re.IGNORECASE)
+    if m:
+        out["denoise"] = m.group(1).strip()
+
     m = re.search(r"(?:^|,\s*)Size:\s*([^,\n]+)", clean, re.IGNORECASE)
     if m:
         out["size"] = m.group(1).strip()

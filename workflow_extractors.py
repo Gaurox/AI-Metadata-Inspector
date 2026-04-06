@@ -20,6 +20,33 @@ from workflow_utils import (
     node_widgets,
 )
 
+def _normalize_flag_text(value):
+    disp = _coerce_display_value(value)
+    if disp is None:
+        return None
+    lower = str(disp).strip().lower()
+    mapping = {
+        "true": "true",
+        "false": "false",
+        "yes": "yes",
+        "no": "no",
+        "enable": "enable",
+        "enabled": "enable",
+        "disable": "disable",
+        "disabled": "disable",
+        "on": "on",
+        "off": "off",
+    }
+    return mapping.get(lower, str(disp).strip())
+
+
+def _set_first(info, key, value, normalizer=None):
+    if info.get(key) is not None:
+        return
+    val = normalizer(value) if normalizer else _coerce_display_value(value)
+    if val is not None:
+        info[key] = val
+
 
 def collect_prompt_info(data):
     positive_prompt = extract_from_prompt_dict(data, mode="positive") or extract_from_workflow_nodes(data, mode="positive")
@@ -162,6 +189,14 @@ def collect_node_based_info(data, info):
             fps_val = _coerce_display_value(_resolve_value(data, _input_dict_get(inputs, "fps")))
             frame_rate_val = _coerce_display_value(_resolve_value(data, _input_dict_get(inputs, "frame_rate")))
             sigmas_val = _coerce_display_value(_resolve_value(data, _input_dict_get(inputs, "sigmas")))
+            denoise_val = _coerce_display_value(_resolve_value(data, _input_dict_get(inputs, "denoise")))
+            add_noise_val = _normalize_flag_text(_resolve_value(data, _input_dict_get(inputs, "add_noise")))
+            noise_seed_val = _coerce_display_value(_resolve_value(data, _input_dict_get(inputs, "noise_seed")))
+
+            _set_first(info, "denoise", denoise_val)
+            _set_first(info, "add_noise", add_noise_val, normalizer=_normalize_flag_text)
+            if noise_seed_val is not None and str(noise_seed_val).strip() != "":
+                _set_first(info, "noise_seed", noise_seed_val)
 
             if info["steps"] is None and steps_val is not None:
                 info["steps"] = steps_val
@@ -178,6 +213,10 @@ def collect_node_based_info(data, info):
                 _append_unique(info["sigmas"], sigmas_val)
 
             if ntype == "ksampleradvanced":
+                if info["add_noise"] is None and len(widgets) > 0:
+                    info["add_noise"] = _normalize_flag_text(widgets[0])
+                if info["noise_seed"] is None and len(widgets) > 1:
+                    info["noise_seed"] = _coerce_display_value(widgets[1])
                 if info["steps"] is None and len(widgets) > 3:
                     info["steps"] = _coerce_display_value(widgets[3])
                 if info["cfg"] is None and len(widgets) > 4:
@@ -186,12 +225,28 @@ def collect_node_based_info(data, info):
                     info["sampler"] = _coerce_display_value(widgets[5])
                 if info["scheduler"] is None and len(widgets) > 6:
                     info["scheduler"] = _coerce_display_value(widgets[6])
+                if info["denoise"] is None and len(widgets) > 7:
+                    info["denoise"] = _coerce_display_value(widgets[7])
 
             if ntype == "cfgguider" and info["cfg"] is None and len(widgets) > 0:
                 info["cfg"] = _coerce_display_value(widgets[0])
 
             if ntype == "ksamplerselect" and info["sampler"] is None and len(widgets) > 0:
                 info["sampler"] = _coerce_display_value(widgets[0])
+
+            if ntype == "ksampler":
+                if info["noise_seed"] is None and len(widgets) > 0:
+                    info["noise_seed"] = _coerce_display_value(widgets[0])
+                if info["steps"] is None and len(widgets) > 1:
+                    info["steps"] = _coerce_display_value(widgets[1])
+                if info["cfg"] is None and len(widgets) > 2:
+                    info["cfg"] = _coerce_display_value(widgets[2])
+                if info["sampler"] is None and len(widgets) > 3:
+                    info["sampler"] = _coerce_display_value(widgets[3])
+                if info["scheduler"] is None and len(widgets) > 4:
+                    info["scheduler"] = _coerce_display_value(widgets[4])
+                if info["denoise"] is None and len(widgets) > 5:
+                    info["denoise"] = _coerce_display_value(widgets[5])
 
             if ntype == "flux2scheduler":
                 width_val = _coerce_display_value(_resolve_value(data, _input_dict_get(inputs, "width")))

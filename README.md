@@ -1,104 +1,153 @@
 # AI Metadata Inspector
 
-Portable Windows tool to extract AI generation metadata and quickly copy prompts from image and video files via right-click.
+Portable Windows tool to extract AI generation metadata and instantly reuse prompts from image and video files via right-click.
 
 ---
 
-## Quick Access (Right-click)
+## ⚡ Quick Access (Right-click)
 
-Instantly access key features directly from Windows Explorer:
+Access everything instantly from Windows Explorer:
 
-![Context Menu](screenshots/right-click.png)
+![Right Click](screenshots/right-click.png)
 
 - Copy positive prompt  
 - Copy negative prompt  
 - Open full AI metadata window  
 
+👉 No need to open ComfyUI or dig through workflows
+
 ---
 
-## Preview
+## 🖼️ AI Info Window
 
-### AI Info Window
-Clean and fast overview of prompts, settings and metadata:
+Clean and fast overview of prompts and generation settings:
 
 ![AI Info](screenshots/AI-Info.png)
 
-### Model & Workflow Details
-Detailed breakdown of models, LoRAs and workflow parameters:
+---
+
+## 🔍 Detailed Generation Data
+
+Full breakdown including seed logic and sampler configuration:
 
 ![AI Info 2](screenshots/AI-Info2.png)
 
 ---
 
-## Features
+## 🔁 Advanced Workflow Support
 
-- Extract AI generation metadata from PNG and MP4 files  
-- Copy positive and negative prompts directly from the Windows right-click menu  
-- Display detailed metadata in a clean and fast info window  
-- Supports ComfyUI workflows and A1111-style metadata  
-- Fully portable (embedded Python, no external dependencies)  
-- Silent execution (no console windows)
+Multi-pass workflows are fully supported and clearly displayed:
+
+![AI Info 3](screenshots/AI-Info3.png)
 
 ---
 
-## Supported Formats
+## 🚀 Features
 
-### PNG
+- Extract metadata from **PNG and MP4**
+- Works with:
+  - ComfyUI workflows  
+  - WAN / img2vid pipelines  
+  - A1111-style metadata (partial)
+- Instant prompt copy via right-click
+- Clean UI (no node graph mess)
+
+### 🎯 Generation Data
+
+- Seed (robust detection, including `0`)
+- Noise seed
+- Add noise / denoise
+- Steps / CFG / sampler / scheduler
+- Workflow resolution, FPS, length
+
+### 🔁 Multi-Sampler Support (V1.1)
+
+- Detects multiple sampler passes automatically  
+- Works with advanced workflows (WAN, img2vid, etc.)
+
+Each pass includes:
+- Seed / Noise seed  
+- Add noise  
+- Steps / CFG  
+- Sampler / Scheduler  
+- Step range (start → end)  
+- Leftover noise behavior  
+
+---
+
+## ⚡ Why this tool?
+
+ComfyUI already allows loading images and workflows.
+
+But this tool is built for speed and clarity:
+
+- No need to launch ComfyUI  
+- Works directly from Explorer  
+- Much faster when browsing folders  
+- Clear summary instead of complex graphs  
+- Easily find seeds and settings  
+
+👉 Think of it like **MediaInfo for AI-generated content**
+
+---
+
+## 🧠 Key Advantages
+
+- Works even when Windows preview fails  
+- Handles complex and multi-pass workflows  
+- Extracts data from non-standard AI metadata  
+- Fast (~1 second) and fully silent  
+
+---
+
+## 📦 Installation
+
+Download the latest installer:
+
+👉 https://github.com/Gaurox/AI-Metadata-Inspector/releases
+
+Run the installer and you're ready to go.
+
+---
+
+## 🧩 Supported Formats
+
+### 🖼️ PNG
 - ComfyUI prompt JSON  
-- A1111-style text metadata  
+- A1111 metadata  
 
-### MP4
+### 🎬 MP4
 - ComfyUI workflow JSON  
-- Multi-sampler workflows supported  
+- Multi-sampler workflows  
+- WAN / img2vid supported  
 
 ---
 
-## Usage
+## ⚙️ Tech Stack
 
-After installation:
-
-- Right-click on a PNG or MP4 file  
-- Use:  
-  - **AI - Copy positive prompt**  
-  - **AI - Copy negative prompt**  
-  - **AI - Metadata Info**  
+- Python (embedded, no dependencies)
+- ExifTool
+- PowerShell (WinForms UI)
+- VBS launcher
+- Inno Setup
 
 ---
 
-## Installation
-
-Download the latest installer from the Releases section:
-
-https://github.com/Gaurox/AI-Metadata-Inspector/releases  
-
-Run the installer and follow the steps.
-
----
-
-## Tech Stack
-
-- Python (embedded)  
-- ExifTool  
-- PowerShell + WinForms  
-- VBS launcher  
-- Inno Setup  
-
----
-
-## Notes
+## 📝 Notes
 
 - Optimized for ComfyUI workflows  
-- Partial support for other metadata formats  
+- Tested with WAN, Flux, LTX, Qwen, A1111  
+- Compatibility may vary depending on metadata format  
 - Windows 10 / 11 only  
 
 ---
 
-## License
+## 📄 License
 
 MIT License  
 
 ---
 
-## Author
+## 👤 Author
 
-Gaurox  
+Gaurox

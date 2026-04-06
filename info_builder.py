@@ -68,8 +68,12 @@ def _build_info_context(file_path, found, media=None):
     loras = []
     upscale_models = []
     sigmas = []
+    samplers_details = []
     seed = ""
     seed_source = ""
+    noise_seed = ""
+    denoise = ""
+    add_noise = ""
     steps = ""
     cfg = ""
     sampler = ""
@@ -88,8 +92,12 @@ def _build_info_context(file_path, found, media=None):
         loras = comfy.get("loras", []) or []
         upscale_models = comfy.get("upscale_models", []) or []
         sigmas = comfy.get("sigmas", []) or []
+        samplers_details = comfy.get("samplers_details", []) or []
         seed = comfy.get("seed") or ""
         seed_source = comfy.get("seed_source") or ""
+        noise_seed = comfy.get("noise_seed") or ""
+        denoise = comfy.get("denoise") or ""
+        add_noise = comfy.get("add_noise") or ""
         steps = comfy.get("steps") or ""
         cfg = comfy.get("cfg") or ""
         sampler = comfy.get("sampler") or ""
@@ -103,6 +111,7 @@ def _build_info_context(file_path, found, media=None):
     else:
         model_display = a1111_params.get("model") or ""
         seed = a1111_params.get("seed") or ""
+        denoise = a1111_params.get("denoise") or ""
         steps = a1111_params.get("steps") or ""
         cfg = a1111_params.get("cfg") or ""
         sampler = a1111_params.get("sampler") or ""
@@ -126,6 +135,7 @@ def _build_info_context(file_path, found, media=None):
         "confidence": confidence,
         "prompt_source": prompt_source,
         "seed_source": seed_source,
+        "samplers_count": len(samplers_details),
     }
 
     return {
@@ -142,8 +152,12 @@ def _build_info_context(file_path, found, media=None):
         "loras": loras,
         "upscale_models": upscale_models,
         "sigmas": sigmas,
+        "samplers_details": samplers_details,
         "seed": seed,
         "seed_source": seed_source,
+        "noise_seed": noise_seed,
+        "denoise": denoise,
+        "add_noise": add_noise,
         "steps": steps,
         "cfg": cfg,
         "sampler": sampler,
@@ -202,12 +216,34 @@ def build_info_text(file_path, found, media=None):
     add_big_title("GENERATION")
     add_kv("Seed", _safe_text(ctx["seed"]))
     add_kv("Seed source", _safe_text(ctx["seed_source"]))
+    add_kv("Noise seed", _safe_text(ctx["noise_seed"]))
+    add_kv("Denoise", _safe_text(ctx["denoise"]))
+    add_kv("Add noise", _safe_text(ctx["add_noise"]))
     add_kv("Steps", _safe_text(ctx["steps"] if comfy else a1111_params.get("steps")))
     add_kv("CFG", _safe_text(ctx["cfg"] if comfy else a1111_params.get("cfg")))
     add_kv("Sampler", _safe_text(ctx["sampler"] if comfy else a1111_params.get("sampler")))
     add_kv("Scheduler", _safe_text(ctx["scheduler"]))
     add_kv("Prompt source", _safe_text(ctx["prompt_source"]))
     add_kv("Confidence", _safe_text(ctx["confidence"]))
+
+    if ctx["samplers_details"]:
+        add_big_title("SAMPLER PASSES")
+        for detail in ctx["samplers_details"]:
+            add_line(f"[{_safe_text(detail.get('label'), 'Sampler')}]")
+            add_kv("Node ID", _safe_text(detail.get("node_id"), "(unknown)"))
+            add_kv("Type", _safe_text(detail.get("node_type")))
+            add_kv("Seed", _safe_text(detail.get("seed")))
+            add_kv("Noise Seed", _safe_text(detail.get("noise_seed")))
+            add_kv("Add Noise", _safe_text(detail.get("add_noise")))
+            add_kv("Denoise", _safe_text(detail.get("denoise")))
+            add_kv("Steps", _safe_text(detail.get("steps")))
+            add_kv("CFG", _safe_text(detail.get("cfg")))
+            add_kv("Sampler", _safe_text(detail.get("sampler")))
+            add_kv("Scheduler", _safe_text(detail.get("scheduler")))
+            add_kv("Start Step", _safe_text(detail.get("start_at_step")))
+            add_kv("End Step", _safe_text(detail.get("end_at_step")))
+            add_kv("Return With Leftover Noise", _safe_text(detail.get("return_with_leftover_noise")))
+            add_line("")
 
     if comfy:
         add_big_title("MODELS")
@@ -272,6 +308,9 @@ def build_info_payload(file_path, found):
         "negative": ctx["negative"],
         "seed": ctx["seed"],
         "seed_source": ctx["seed_source"],
+        "noise_seed": ctx["noise_seed"],
+        "denoise": ctx["denoise"],
+        "add_noise": ctx["add_noise"],
         "steps": ctx["steps"],
         "cfg": ctx["cfg"],
         "sampler": ctx["sampler"],
@@ -287,6 +326,7 @@ def build_info_payload(file_path, found):
         "loras": "\n".join(ctx["loras"]) if ctx["loras"] else "",
         "upscale_models": " | ".join(ctx["upscale_models"]) if ctx["upscale_models"] else "",
         "sigmas": " | ".join(ctx["sigmas"]) if ctx["sigmas"] else "",
+        "samplers_details": ctx["samplers_details"],
         "source_tag": ctx["source_tag"],
         "prompt_source": ctx["prompt_source"],
         "confidence": ctx["confidence"],
