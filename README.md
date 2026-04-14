@@ -1,159 +1,195 @@
 # AI Metadata Inspector
 
-## 🔧 v1.1.1
+Portable Windows tool to extract AI generation metadata and reuse prompts from image and video files directly from the right-click menu.
 
-- Fixed sampler pass display order in multi-pass workflows
-- High-noise / generation pass is now shown first more reliably
+\---
 
-Portable Windows tool to extract AI generation metadata and instantly reuse prompts from image and video files via right-click.
+## Version
 
+Current version: 1.2.0
 
----
+\---
 
-## ⚡ Quick Access (Right-click)
+## Overview
 
-Access everything instantly from Windows Explorer:
+AI Metadata Inspector allows you to quickly access prompts and generation data embedded in files without opening ComfyUI or any other tool.
 
-![Right Click](screenshots/right-click.png)
+It is designed to be fast, silent, and easy to use directly from Windows Explorer.
 
-- Copy positive prompt  
-- Copy negative prompt  
-- Open full AI metadata window  
+\---
 
-👉 No need to open ComfyUI or dig through workflows
+## Features
 
----
+Right-click actions:
 
-## 🖼️ AI Info Window
+* AI - Copy positive prompt
+* AI - Copy negative prompt
+* AI - Metadata Info
+* AI - Extract Frames (MP4 only)
 
-Clean and fast overview of prompts and generation settings:
+Supported formats:
 
-![AI Info](screenshots/AI-Info.png)
+* PNG
+* MP4
 
----
+Supported metadata:
 
-## 🔍 Detailed Generation Data
+* ComfyUI workflows (JSON)
+* A1111-style metadata (partial)
+* Various embedded metadata formats
 
-Full breakdown including seed logic and sampler configuration:
+\---
 
-![AI Info 2](screenshots/AI-Info2.png)
+## Extracted data
 
----
+The tool can extract:
 
-## 🔁 Advanced Workflow Support
+* Positive and negative prompts
+* Seed (including correct handling of 0)
+* Noise seed
+* Steps
+* CFG
+* Sampler and scheduler
+* Denoise and add\_noise
+* Resolution and dimensions
+* FPS and length (video workflows)
 
-Multi-pass workflows are fully supported and clearly displayed:
+\---
 
-![AI Info 3](screenshots/AI-Info3.png)
+## Multi-pass workflows
 
----
+Advanced workflows are supported:
 
-## 🚀 Features
+* Multiple sampler passes detected
+* Each pass is displayed independently
+* Compatible with WAN and img2vid pipelines
 
-- Extract metadata from **PNG and MP4**
-- Works with:
-  - ComfyUI workflows  
-  - WAN / img2vid pipelines  
-  - A1111-style metadata (partial)
-- Instant prompt copy via right-click
-- Clean UI (no node graph mess)
+\---
 
-### 🎯 Generation Data
+## Frame extraction
 
-- Seed (robust detection, including `0`)
-- Noise seed
-- Add noise / denoise
-- Steps / CFG / sampler / scheduler
-- Workflow resolution, FPS, length
+For MP4 files:
 
-### 🔁 Multi-Sampler Support (V1.1)
+* Extracts all frames as PNG (lossless)
+* Uses FFmpeg (included in the installer)
+* Output options:
 
-- Detects multiple sampler passes automatically  
-- Works with advanced workflows (WAN, img2vid, etc.)
+  * folder next to the video
+  * or predefined folder
 
-Each pass includes:
-- Seed / Noise seed  
-- Add noise  
-- Steps / CFG  
-- Sampler / Scheduler  
-- Step range (start → end)  
-- Leftover noise behavior  
+Frames are named consistently to avoid uncontrolled folder growth.
+Partial extraction is automatically cleaned if cancelled.
 
----
+\---
 
-## ⚡ Why this tool?
+## Installation
 
-ComfyUI already allows loading images and workflows.
+Download the latest release:
 
-But this tool is built for speed and clarity:
+https://github.com/Gaurox/AI-Metadata-Inspector/releases
 
-- No need to launch ComfyUI  
-- Works directly from Explorer  
-- Much faster when browsing folders  
-- Clear summary instead of complex graphs  
-- Easily find seeds and settings  
+Run the installer.
 
-👉 Think of it like **MediaInfo for AI-generated content**
+No additional dependencies are required.
 
----
+\---
 
-## 🧠 Key Advantages
+## Run from source
 
-- Works even when Windows preview fails  
-- Handles complex and multi-pass workflows  
-- Extracts data from non-standard AI metadata  
-- Fast (~1 second) and fully silent  
+If you do not want to use the executable, you can run the tool directly.
 
----
+### Requirements
 
-## 📦 Installation
+* Windows 10 or 11
+* Python 3.x
 
-Download the latest installer:
+### Usage
 
-👉 https://github.com/Gaurox/AI-Metadata-Inspector/releases
+python main.py "your\_file.png" info
 
-Run the installer and you're ready to go.
+Other modes:
 
----
+python main.py "your\_file.png" positive
+python main.py "your\_file.png" negative
+python main.py "your\_file.mp4" extract\_frames
 
-## 🧩 Supported Formats
+\---
 
-### 🖼️ PNG
-- ComfyUI prompt JSON  
-- A1111 metadata  
+## Build the installer
 
-### 🎬 MP4
-- ComfyUI workflow JSON  
-- Multi-sampler workflows  
-- WAN / img2vid supported  
+The installer is built using Inno Setup.
 
----
+### Requirements
 
-## ⚙️ Tech Stack
+* Inno Setup
 
-- Python (embedded, no dependencies)
-- ExifTool
-- PowerShell (WinForms UI)
-- VBS launcher
-- Inno Setup
+### Build command
 
----
+iscc AI\_Metadata\_Inspector.iss
 
-## 📝 Notes
+The installer will be generated in the Output folder.
 
-- Optimized for ComfyUI workflows  
-- Tested with WAN, Flux, LTX, Qwen, A1111  
-- Compatibility may vary depending on metadata format  
-- Windows 10 / 11 only  
+\---
 
----
+## What is included
 
-## 📄 License
+The installer contains:
 
-MIT License  
+* Python (embedded, portable)
+* ExifTool
+* All Python scripts
+* PowerShell GUI
+* VBS launcher (silent execution)
+* Context menu integration
+* FFmpeg (for frame extraction)
 
----
+No external downloads are required.
 
-## 👤 Author
+\---
+
+## Project structure
+
+Main files:
+
+* main.py: CLI entry point
+* exif\_reader.py: metadata extraction via ExifTool
+* prompt\_extractors.py: prompt extraction logic
+* workflow\_parser.py: workflow parsing
+* workflow\_seed.py: seed and sampler logic
+* info\_builder.py: structured output
+* info\_window.py: GUI launcher
+
+\---
+
+## Security and transparency
+
+This project is open source.
+
+If you do not trust the executable:
+
+* you can run the tool from source
+* you can build the installer yourself
+* you can inspect all scripts before running anything
+
+There is no network communication and no external dependency.
+
+\---
+
+## Limitations
+
+* Optimized for ComfyUI workflows
+* Partial compatibility with other tools
+* Metadata depends on how the file was generated
+
+\---
+
+## License
+
+MIT License
+
+\---
+
+## Author
 
 Gaurox
+

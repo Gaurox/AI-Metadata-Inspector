@@ -9,13 +9,23 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
+from app_config import get_frame_extraction_config
 from exif_reader import EXIFTOOL, collect_found_tags, exiftool_exists, debug
+from frame_extractor import extract_frames
 from info_builder import build_info_payload
 from info_window import show_info_window
 from prompt_extractors import extract_prompt_data
 
 
-VALID_MODES = ("positive", "negative", "info", "debug", "export_txt", "export_json")
+VALID_MODES = (
+    "positive",
+    "negative",
+    "info",
+    "debug",
+    "export_txt",
+    "export_json",
+    "extract_frames",
+)
 
 
 def get_hidden_subprocess_kwargs():
@@ -109,6 +119,16 @@ def main():
     debug(f"FILE={file_path}")
     debug(f"MODE={mode}")
     debug(f"EXIFTOOL={EXIFTOOL}")
+
+    if mode == "extract_frames":
+        if not Path(file_path).exists():
+            debug("EXIT 3: target file missing")
+            sys.exit(3)
+
+        config = get_frame_extraction_config()
+        result = extract_frames(file_path, config)
+        debug(f"EXIT {result}: extract_frames")
+        sys.exit(result)
 
     if not exiftool_exists():
         debug("EXIT 2: exiftool missing")
