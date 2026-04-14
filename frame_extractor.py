@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import math
 import subprocess
 import tempfile
 from pathlib import Path
 
-from exif_reader import debug
+from exif_reader import collect_media_info, debug
 
 
 FRAME_PATTERN = "frame_%06d.png"
@@ -69,6 +70,81 @@ def build_output_folder(
     return file_path.parent / folder_name
 
 
+def _parse_fraction(text: str) -> float | None:
+    raw = str(text or "").strip()
+    if not raw:
+        return None
+
+    try:
+        if "/" in raw:
+            left, right = raw.split("/", 1)
+            denominator = float(right.strip())
+            if denominator == 0:
+                return None
+            return float(left.strip()) / denominator
+        return float(raw)
+    except Exception:
+        return None
+
+
+def _parse_duration_seconds(value) -> float | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+
+    normalized = raw.lower().replace(" sec", "").replace(" secs", "").strip()
+
+    if ":" in normalized:
+        parts = normalized.split(":")
+        try:
+            parts_f = [float(part.strip()) for part in parts]
+        except Exception:
+            parts_f = []
+
+        if len(parts_f) == 3:
+            return (parts_f[0] * 3600.0) + (parts_f[1] * 60.0) + parts_f[2]
+        if len(parts_f) == 2:
+            return (parts_f[0] * 60.0) + parts_f[1]
+
+    try:
+        return float(normalized)
+    except Exception:
+        return None
+
+
+def estimate_total_frames(input_file: Path) -> int:
+    try:
+        media = collect_media_info(str(input_file))
+    except Exception as e:
+        debug(f"FAILED TO READ MEDIA INFO FOR PROGRESS: {e}")
+        return 0
+
+    fps_raw = media.get("VideoFrameRate", "")
+    duration_raw = media.get("Duration", "")
+
+    fps = _parse_fraction(fps_raw)
+    duration_seconds = _parse_duration_seconds(duration_raw)
+
+    debug(
+        "PROGRESS ESTIMATE INPUT "
+        f"fps_raw={fps_raw!r} duration_raw={duration_raw!r} "
+        f"fps={fps!r} duration_seconds={duration_seconds!r}"
+    )
+
+    if fps is None or duration_seconds is None:
+        return 0
+
+    if fps <= 0 or duration_seconds <= 0:
+        return 0
+
+    estimated = int(math.ceil(fps * duration_seconds))
+    if estimated <= 0:
+        return 0
+
+    debug(f"ESTIMATED TOTAL FRAMES={estimated}")
+    return estimated
+
+
 def launch_ffmpeg(input_file: Path, output_folder: Path) -> subprocess.Popen:
     ffmpeg_path = get_ffmpeg_path()
     output_pattern = str(output_folder / FRAME_PATTERN)
@@ -92,7 +168,12 @@ def launch_ffmpeg(input_file: Path, output_folder: Path) -> subprocess.Popen:
     )
 
 
-def run_progress_window(video_path: Path, output_folder: Path, ffmpeg_pid: int) -> int:
+def run_progress_window(
+    video_path: Path,
+    output_folder: Path,
+    ffmpeg_pid: int,
+    expected_frame_count: int,
+) -> int:
     script_path = get_window_script_path()
 
     if not script_path.exists():
@@ -108,7 +189,8 @@ param(
     [string]$ScriptPath,
     [string]$VideoPath,
     [string]$OutputFolder,
-    [int]$FfmpegProcessId
+    [int]$FfmpegProcessId,
+    [int]$ExpectedFrameCount
 )
 
 $ErrorActionPreference = "Stop"
@@ -122,7 +204,8 @@ if (-not (Test-Path -LiteralPath $ScriptPath)) {
 & $ScriptPath `
     -VideoPath $VideoPath `
     -OutputFolder $OutputFolder `
-    -FfmpegProcessId $FfmpegProcessId
+    -FfmpegProcessId $FfmpegProcessId `
+    -ExpectedFrameCount $ExpectedFrameCount
 
 exit $LASTEXITCODE
 '''.strip()
@@ -153,6 +236,8 @@ exit $LASTEXITCODE
         str(output_folder),
         "-FfmpegProcessId",
         str(ffmpeg_pid),
+        "-ExpectedFrameCount",
+        str(expected_frame_count),
     ]
 
     debug(f"WINDOW CMD: {' '.join(cmd)}")
@@ -227,10 +312,17 @@ def run_ffmpeg_with_cancel_ui(input_file: Path, output_folder: Path) -> int:
     ffmpeg_process: subprocess.Popen | None = None
 
     try:
+        expected_frame_count = estimate_total_frames(input_file)
+
         ffmpeg_process = launch_ffmpeg(input_file, output_folder)
         debug(f"FFMPEG STARTED PID={ffmpeg_process.pid}")
 
-        window_code = run_progress_window(input_file, output_folder, ffmpeg_process.pid)
+        window_code = run_progress_window(
+            input_file,
+            output_folder,
+            ffmpeg_process.pid,
+            expected_frame_count,
+        )
 
         ffmpeg_code = ffmpeg_process.poll()
         debug(f"FFMPEG POLL AFTER WINDOW={ffmpeg_code}")

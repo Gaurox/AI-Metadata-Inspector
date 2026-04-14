@@ -6,7 +6,10 @@ param(
     [string]$OutputFolder,
 
     [Parameter(Mandatory = $true)]
-    [int]$FfmpegProcessId
+    [int]$FfmpegProcessId,
+
+    [Parameter(Mandatory = $false)]
+    [int]$ExpectedFrameCount = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -49,12 +52,90 @@ function Stop-TargetProcessSafe {
     return $false
 }
 
+function Get-ExtractedFrameCount {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FolderPath
+    )
+
+    try {
+        if (-not (Test-Path -LiteralPath $FolderPath)) {
+            return 0
+        }
+
+        $files = Get-ChildItem -LiteralPath $FolderPath -Filter 'frame_*.png' -File -ErrorAction Stop
+        return @($files).Count
+    }
+    catch {
+        return 0
+    }
+}
+
+function Update-ProgressUi {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$CurrentFrameCount,
+
+        [Parameter(Mandatory = $true)]
+        [bool]$IsCompleted
+    )
+
+    $displayCount = $CurrentFrameCount
+    if ($displayCount -lt 0) {
+        $displayCount = 0
+    }
+
+    if ($ExpectedFrameCount -gt 0) {
+        $safeMax = $ExpectedFrameCount
+        if ($safeMax -lt 1) {
+            $safeMax = 1
+        }
+
+        $clampedValue = $displayCount
+        if ($clampedValue -gt $safeMax) {
+            $clampedValue = $safeMax
+        }
+
+        $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
+        $progressBar.Minimum = 0
+        $progressBar.Maximum = $safeMax
+        $progressBar.Value = $clampedValue
+
+        $percent = [int][Math]::Round(($clampedValue * 100.0) / $safeMax)
+        if ($percent -gt 100) {
+            $percent = 100
+        }
+
+        if ($IsCompleted) {
+            $labelStatus.Text = "Extraction completed."
+        }
+        else {
+            $labelStatus.Text = "Extraction in progress..."
+        }
+
+        $labelProgress.Text = "$displayCount / $ExpectedFrameCount frames ($percent%)"
+        return
+    }
+
+    $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Marquee
+    $progressBar.MarqueeAnimationSpeed = 25
+
+    if ($IsCompleted) {
+        $labelStatus.Text = "Extraction completed."
+    }
+    else {
+        $labelStatus.Text = "Extraction in progress..."
+    }
+
+    $labelProgress.Text = "$displayCount frames extracted"
+}
+
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "AI Metadata Inspector - Extract Frames"
 $form.StartPosition = "CenterScreen"
-$form.Size = New-Object System.Drawing.Size(660, 235)
-$form.MinimumSize = New-Object System.Drawing.Size(660, 235)
-$form.MaximumSize = New-Object System.Drawing.Size(660, 235)
+$form.Size = New-Object System.Drawing.Size(660, 285)
+$form.MinimumSize = New-Object System.Drawing.Size(660, 285)
+$form.MaximumSize = New-Object System.Drawing.Size(660, 285)
 $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
 $form.MaximizeBox = $false
 $form.MinimizeBox = $false
@@ -105,14 +186,40 @@ $labelStatus.Size = New-Object System.Drawing.Size(420, 20)
 $labelStatus.Text = "Extraction in progress..."
 $form.Controls.Add($labelStatus)
 
+$progressBar = New-Object System.Windows.Forms.ProgressBar
+$progressBar.Location = New-Object System.Drawing.Point(120, 148)
+$progressBar.Size = New-Object System.Drawing.Size(500, 22)
+if ($ExpectedFrameCount -gt 0) {
+    $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
+    $progressBar.Minimum = 0
+    $progressBar.Maximum = $ExpectedFrameCount
+    $progressBar.Value = 0
+}
+else {
+    $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Marquee
+    $progressBar.MarqueeAnimationSpeed = 25
+}
+$form.Controls.Add($progressBar)
+
+$labelProgress = New-Object System.Windows.Forms.Label
+$labelProgress.Location = New-Object System.Drawing.Point(120, 176)
+$labelProgress.Size = New-Object System.Drawing.Size(420, 20)
+if ($ExpectedFrameCount -gt 0) {
+    $labelProgress.Text = "0 / $ExpectedFrameCount frames (0%)"
+}
+else {
+    $labelProgress.Text = "0 frames extracted"
+}
+$form.Controls.Add($labelProgress)
+
 $buttonCancel = New-Object System.Windows.Forms.Button
-$buttonCancel.Location = New-Object System.Drawing.Point(505, 150)
+$buttonCancel.Location = New-Object System.Drawing.Point(505, 205)
 $buttonCancel.Size = New-Object System.Drawing.Size(115, 30)
 $buttonCancel.Text = "Cancel"
 $form.Controls.Add($buttonCancel)
 
 $timer = New-Object System.Windows.Forms.Timer
-$timer.Interval = 800
+$timer.Interval = 500
 
 $script:WasCancelled = $false
 $script:CompletedNormally = $false
@@ -136,7 +243,7 @@ $buttonCancel.Add_Click({
     if (-not (Test-TargetProcessAlive -TargetProcessId $FfmpegProcessId)) {
         $script:CompletedNormally = $true
         $script:IsClosingInternally = $true
-        $labelStatus.Text = "Extraction already completed."
+        Update-ProgressUi -CurrentFrameCount (Get-ExtractedFrameCount -FolderPath $OutputFolder) -IsCompleted $true
         $timer.Stop()
         $form.Close()
         return
@@ -147,16 +254,22 @@ $buttonCancel.Add_Click({
 })
 
 $timer.Add_Tick({
+    $currentFrameCount = Get-ExtractedFrameCount -FolderPath $OutputFolder
+
     if (-not (Test-TargetProcessAlive -TargetProcessId $FfmpegProcessId)) {
         $script:CompletedNormally = $true
         $script:IsClosingInternally = $true
-        $labelStatus.Text = "Extraction completed."
+        Update-ProgressUi -CurrentFrameCount $currentFrameCount -IsCompleted $true
         $timer.Stop()
         $form.Close()
+        return
     }
+
+    Update-ProgressUi -CurrentFrameCount $currentFrameCount -IsCompleted $false
 })
 
 $form.Add_Shown({
+    Update-ProgressUi -CurrentFrameCount (Get-ExtractedFrameCount -FolderPath $OutputFolder) -IsCompleted $false
     $timer.Start()
 })
 

@@ -1,5 +1,5 @@
 #define MyAppName "AI Metadata Inspector"
-#define MyAppVersion "1.2.0"
+#define MyAppVersion "1.2.1"
 #define MyAppPublisher "Gaurox"
 #define MyAppURL "https://github.com/Gaurox/AI-Metadata-Inspector"
 
@@ -31,8 +31,8 @@ SetupIconFile=icons\info.ico
 AllowNoIcons=yes
 UsePreviousAppDir=yes
 
-VersionInfoVersion=1.2.0.0
-VersionInfoTextVersion=1.2.0
+VersionInfoVersion=1.2.1.0
+VersionInfoTextVersion=1.2.1
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -88,36 +88,42 @@ Name: "{group}\Disable old context menu"; Filename: "{app}\Context_Menu_Tools\di
 Name: "{group}\Uninstall AI Metadata Inspector"; Filename: "{uninstallexe}"
 
 [Registry]
-Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.1_CopyPositivePrompt"; ValueType: string; ValueData: "AI - Copy positive prompt"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.1_CopyPositivePrompt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\positive.ico"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.1_CopyPositivePrompt\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" positive"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.1_CopyPositivePrompt"; ValueType: string; ValueData: "AI - Copy positive prompt"; Flags: uninsdeletekey; Check: ShouldInstallPositivePrompt
+Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.1_CopyPositivePrompt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\positive.ico"; Flags: uninsdeletevalue; Check: ShouldInstallPositivePrompt
+Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.1_CopyPositivePrompt\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" positive"; Flags: uninsdeletekey; Check: ShouldInstallPositivePrompt
 
-Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt"; ValueType: string; ValueData: "AI - Copy negative prompt"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\negative.ico"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" negative"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt"; ValueType: string; ValueData: "AI - Copy negative prompt"; Flags: uninsdeletekey; Check: ShouldInstallNegativePrompt
+Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\negative.ico"; Flags: uninsdeletevalue; Check: ShouldInstallNegativePrompt
+Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" negative"; Flags: uninsdeletekey; Check: ShouldInstallNegativePrompt
 
-Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueData: "AI - Metadata Info"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\info.ico"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" info"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueData: "AI - AI Info"; Flags: uninsdeletekey; Check: ShouldInstallAIInfo
+Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\info.ico"; Flags: uninsdeletevalue; Check: ShouldInstallAIInfo
+Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" info"; Flags: uninsdeletekey; Check: ShouldInstallAIInfo
 
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.1_CopyPositivePrompt"; ValueType: string; ValueData: "AI - Copy positive prompt"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.1_CopyPositivePrompt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\positive.ico"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.1_CopyPositivePrompt\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" positive"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.1_CopyPositivePrompt"; ValueType: string; ValueData: "AI - Copy positive prompt"; Flags: uninsdeletekey; Check: ShouldInstallPositivePrompt
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.1_CopyPositivePrompt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\positive.ico"; Flags: uninsdeletevalue; Check: ShouldInstallPositivePrompt
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.1_CopyPositivePrompt\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" positive"; Flags: uninsdeletekey; Check: ShouldInstallPositivePrompt
 
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt"; ValueType: string; ValueData: "AI - Copy negative prompt"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\negative.ico"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" negative"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt"; ValueType: string; ValueData: "AI - Copy negative prompt"; Flags: uninsdeletekey; Check: ShouldInstallNegativePrompt
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\negative.ico"; Flags: uninsdeletevalue; Check: ShouldInstallNegativePrompt
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" negative"; Flags: uninsdeletekey; Check: ShouldInstallNegativePrompt
 
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueData: "AI - Metadata Info"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\info.ico"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" info"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueData: "AI - AI Info"; Flags: uninsdeletekey; Check: ShouldInstallAIInfo
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\info.ico"; Flags: uninsdeletevalue; Check: ShouldInstallAIInfo
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" info"; Flags: uninsdeletekey; Check: ShouldInstallAIInfo
 
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.4_ExtractFrames"; ValueType: string; ValueData: "AI - Extract Frames"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.4_ExtractFrames"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\extract.ico"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.4_ExtractFrames\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" extract_frames"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.4_ExtractFrames"; ValueType: string; ValueData: "AI - Extract Frames"; Flags: uninsdeletekey; Check: ShouldInstallExtractFrames
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.4_ExtractFrames"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\extract.ico"; Flags: uninsdeletevalue; Check: ShouldInstallExtractFrames
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.4_ExtractFrames\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" extract_frames"; Flags: uninsdeletekey; Check: ShouldInstallExtractFrames
 
 [Code]
 var
+  ContextMenuPage: TWizardPage;
+  CheckPositivePrompt: TNewCheckBox;
+  CheckNegativePrompt: TNewCheckBox;
+  CheckAIInfo: TNewCheckBox;
+  CheckExtractFrames: TNewCheckBox;
+
   FrameExtractionPage: TWizardPage;
   RadioNextToVideo: TRadioButton;
   RadioFixedFolder: TRadioButton;
@@ -137,6 +143,26 @@ begin
   StringChangeEx(T, '\', '\\', True);
   StringChangeEx(T, '"', '\"', True);
   Result := T;
+end;
+
+function ShouldInstallPositivePrompt(): Boolean;
+begin
+  Result := Assigned(CheckPositivePrompt) and CheckPositivePrompt.Checked;
+end;
+
+function ShouldInstallNegativePrompt(): Boolean;
+begin
+  Result := Assigned(CheckNegativePrompt) and CheckNegativePrompt.Checked;
+end;
+
+function ShouldInstallAIInfo(): Boolean;
+begin
+  Result := Assigned(CheckAIInfo) and CheckAIInfo.Checked;
+end;
+
+function ShouldInstallExtractFrames(): Boolean;
+begin
+  Result := Assigned(CheckExtractFrames) and CheckExtractFrames.Checked;
 end;
 
 procedure UpdateFrameExtractionControls();
@@ -169,9 +195,57 @@ begin
 end;
 
 procedure InitializeWizard();
+var
+  ContextInfoLabel: TNewStaticText;
 begin
-  FrameExtractionPage := CreateCustomPage(
+  ContextMenuPage := CreateCustomPage(
     wpSelectDir,
+    'Context Menu Options',
+    'Choose which right-click entries should be installed'
+  );
+
+  ContextInfoLabel := TNewStaticText.Create(ContextMenuPage);
+  ContextInfoLabel.Parent := ContextMenuPage.Surface;
+  ContextInfoLabel.Left := ScaleX(0);
+  ContextInfoLabel.Top := ScaleY(8);
+  ContextInfoLabel.Width := ContextMenuPage.SurfaceWidth;
+  ContextInfoLabel.Height := ScaleY(24);
+  ContextInfoLabel.Caption := 'All options are enabled by default.';
+
+  CheckPositivePrompt := TNewCheckBox.Create(ContextMenuPage);
+  CheckPositivePrompt.Parent := ContextMenuPage.Surface;
+  CheckPositivePrompt.Left := ScaleX(0);
+  CheckPositivePrompt.Top := ContextInfoLabel.Top + ScaleY(30);
+  CheckPositivePrompt.Width := ContextMenuPage.SurfaceWidth;
+  CheckPositivePrompt.Caption := 'AI - Copy positive prompt';
+  CheckPositivePrompt.Checked := True;
+
+  CheckNegativePrompt := TNewCheckBox.Create(ContextMenuPage);
+  CheckNegativePrompt.Parent := ContextMenuPage.Surface;
+  CheckNegativePrompt.Left := ScaleX(0);
+  CheckNegativePrompt.Top := CheckPositivePrompt.Top + ScaleY(24);
+  CheckNegativePrompt.Width := ContextMenuPage.SurfaceWidth;
+  CheckNegativePrompt.Caption := 'AI - Copy negative prompt';
+  CheckNegativePrompt.Checked := True;
+
+  CheckAIInfo := TNewCheckBox.Create(ContextMenuPage);
+  CheckAIInfo.Parent := ContextMenuPage.Surface;
+  CheckAIInfo.Left := ScaleX(0);
+  CheckAIInfo.Top := CheckNegativePrompt.Top + ScaleY(24);
+  CheckAIInfo.Width := ContextMenuPage.SurfaceWidth;
+  CheckAIInfo.Caption := 'AI - AI Info';
+  CheckAIInfo.Checked := True;
+
+  CheckExtractFrames := TNewCheckBox.Create(ContextMenuPage);
+  CheckExtractFrames.Parent := ContextMenuPage.Surface;
+  CheckExtractFrames.Left := ScaleX(0);
+  CheckExtractFrames.Top := CheckAIInfo.Top + ScaleY(24);
+  CheckExtractFrames.Width := ContextMenuPage.SurfaceWidth;
+  CheckExtractFrames.Caption := 'AI - Extract Frames (MP4 only)';
+  CheckExtractFrames.Checked := True;
+
+  FrameExtractionPage := CreateCustomPage(
+    ContextMenuPage.ID,
     'Frame Extraction Settings',
     'Choose where MP4 frame extractions should be written'
   );
@@ -248,6 +322,14 @@ begin
   UpdateFrameExtractionControls();
 end;
 
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+
+  if PageID = FrameExtractionPage.ID then
+    Result := not ShouldInstallExtractFrames();
+end;
+
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
@@ -270,6 +352,9 @@ var
   FolderValue: string;
   BehaviorValue: string;
 begin
+  if not ShouldInstallExtractFrames() then
+    exit;
+
   if RadioFixedFolder.Checked then
   begin
     ModeValue := 'fixed_folder';
