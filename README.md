@@ -1,195 +1,127 @@
 # AI Metadata Inspector
 
-Portable Windows tool to extract AI generation metadata and reuse prompts from image and video files directly from the right-click menu.
+## 🔧 v1.2.0
 
-\---
+- Added MP4 frame extraction with cancel UI
+- Multi-sampler improvements and better seed handling
 
-## Version
+Portable Windows tool to extract AI generation metadata and instantly reuse prompts from image and video files via right-click.
 
-Current version: 1.2.0
+---
 
-\---
+## ⚡ Quick Access (Right-click)
 
-## Overview
+Access everything instantly from Windows Explorer:
 
-AI Metadata Inspector allows you to quickly access prompts and generation data embedded in files without opening ComfyUI or any other tool.
+![Right Click](screenshots/right-click.png)
 
-It is designed to be fast, silent, and easy to use directly from Windows Explorer.
+- Copy positive prompt  
+- Copy negative prompt  
+- Open full AI metadata window  
+- Extract frames from MP4  
 
-\---
+👉 No need to open ComfyUI or dig through workflows
 
-## Features
+---
 
-Right-click actions:
+## 🖼️ AI Info Window
 
-* AI - Copy positive prompt
-* AI - Copy negative prompt
-* AI - Metadata Info
-* AI - Extract Frames (MP4 only)
+Clean and fast overview of prompts and generation settings:
 
-Supported formats:
+![AI Info](screenshots/AI-Info.png)
 
-* PNG
-* MP4
+---
 
-Supported metadata:
+## 🔍 Detailed Generation Data
 
-* ComfyUI workflows (JSON)
-* A1111-style metadata (partial)
-* Various embedded metadata formats
+Full breakdown including seed logic and sampler configuration:
 
-\---
+![AI Info 2](screenshots/AI-Info2.png)
 
-## Extracted data
+---
 
-The tool can extract:
+## 🔁 Advanced Workflow Support
 
-* Positive and negative prompts
-* Seed (including correct handling of 0)
-* Noise seed
-* Steps
-* CFG
-* Sampler and scheduler
-* Denoise and add\_noise
-* Resolution and dimensions
-* FPS and length (video workflows)
+Multi-pass workflows are fully supported and clearly displayed:
 
-\---
+![AI Info 3](screenshots/AI-Info3.png)
 
-## Multi-pass workflows
+---
 
-Advanced workflows are supported:
+## 🎬 Frame Extraction (NEW in V1.2.0)
 
-* Multiple sampler passes detected
-* Each pass is displayed independently
-* Compatible with WAN and img2vid pipelines
+- Extract all frames from MP4 as PNG (lossless)
+- Uses bundled FFmpeg (no dependency)
+- Configurable output:
+  - next to video
+  - fixed folder
+- Smart cleanup (no folder spam)
+- Cancel anytime via GUI
 
-\---
+---
 
-## Frame extraction
+## 🚀 Features
 
-For MP4 files:
+- Extract metadata from **PNG and MP4**
+- Works with:
+  - ComfyUI workflows  
+  - WAN / img2vid pipelines  
+  - A1111-style metadata (partial)
+- Instant prompt copy via right-click
+- Clean UI (no node graph mess)
 
-* Extracts all frames as PNG (lossless)
-* Uses FFmpeg (included in the installer)
-* Output options:
+### 🎯 Generation Data
 
-  * folder next to the video
-  * or predefined folder
+- Seed (robust detection, including `0`)
+- Noise seed
+- Add noise / denoise
+- Steps / CFG / sampler / scheduler
+- Workflow resolution, FPS, length
 
-Frames are named consistently to avoid uncontrolled folder growth.
-Partial extraction is automatically cleaned if cancelled.
+### 🔁 Multi-Sampler Support
 
-\---
+- Detects multiple sampler passes automatically  
+- Works with advanced workflows  
 
-## Installation
+---
 
-Download the latest release:
+## ⚡ Why this tool?
+
+- No need to launch ComfyUI  
+- Works directly from Explorer  
+- Much faster when browsing folders  
+- Clear summary instead of complex graphs  
+
+👉 Think of it like **MediaInfo for AI-generated content**
+
+---
+
+## 📦 Installation
+
+Download the latest installer:
 
 https://github.com/Gaurox/AI-Metadata-Inspector/releases
 
-Run the installer.
+---
 
-No additional dependencies are required.
+## 🧩 Supported Formats
 
-\---
+### 🖼️ PNG
+- ComfyUI prompt JSON  
+- A1111 metadata  
 
-## Run from source
+### 🎬 MP4
+- ComfyUI workflow JSON  
+- Multi-sampler workflows  
 
-If you do not want to use the executable, you can run the tool directly.
+---
 
-### Requirements
+## 📄 License
 
-* Windows 10 or 11
-* Python 3.x
+MIT License  
 
-### Usage
+---
 
-python main.py "your\_file.png" info
-
-Other modes:
-
-python main.py "your\_file.png" positive
-python main.py "your\_file.png" negative
-python main.py "your\_file.mp4" extract\_frames
-
-\---
-
-## Build the installer
-
-The installer is built using Inno Setup.
-
-### Requirements
-
-* Inno Setup
-
-### Build command
-
-iscc AI\_Metadata\_Inspector.iss
-
-The installer will be generated in the Output folder.
-
-\---
-
-## What is included
-
-The installer contains:
-
-* Python (embedded, portable)
-* ExifTool
-* All Python scripts
-* PowerShell GUI
-* VBS launcher (silent execution)
-* Context menu integration
-* FFmpeg (for frame extraction)
-
-No external downloads are required.
-
-\---
-
-## Project structure
-
-Main files:
-
-* main.py: CLI entry point
-* exif\_reader.py: metadata extraction via ExifTool
-* prompt\_extractors.py: prompt extraction logic
-* workflow\_parser.py: workflow parsing
-* workflow\_seed.py: seed and sampler logic
-* info\_builder.py: structured output
-* info\_window.py: GUI launcher
-
-\---
-
-## Security and transparency
-
-This project is open source.
-
-If you do not trust the executable:
-
-* you can run the tool from source
-* you can build the installer yourself
-* you can inspect all scripts before running anything
-
-There is no network communication and no external dependency.
-
-\---
-
-## Limitations
-
-* Optimized for ComfyUI workflows
-* Partial compatibility with other tools
-* Metadata depends on how the file was generated
-
-\---
-
-## License
-
-MIT License
-
-\---
-
-## Author
+## 👤 Author
 
 Gaurox
-
