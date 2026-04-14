@@ -1,127 +1,132 @@
 # AI Metadata Inspector
 
-## 🔧 v1.2.0
+## v1.2.0
 
-- Added MP4 frame extraction with cancel UI
-- Multi-sampler improvements and better seed handling
+* Added MP4 frame extraction with cancel UI
+* Multi-sampler improvements and better seed handling
 
 Portable Windows tool to extract AI generation metadata and instantly reuse prompts from image and video files via right-click.
 
----
+\---
 
-## ⚡ Quick Access (Right-click)
+## Quick Access (Right-click)
 
 Access everything instantly from Windows Explorer:
 
-![Right Click](screenshots/right-click.png)
+!\[Right Click](screenshots/right-click.png)
 
-- Copy positive prompt  
-- Copy negative prompt  
-- Open full AI metadata window  
-- Extract frames from MP4  
+* Copy positive prompt
+* Copy negative prompt
+* Open full AI metadata window
+* Extract frames from MP4
 
-👉 No need to open ComfyUI or dig through workflows
+No need to open ComfyUI or dig through workflows
 
----
+\---
 
-## 🖼️ AI Info Window
+## AI Info Window
 
 Clean and fast overview of prompts and generation settings:
 
-![AI Info](screenshots/AI-Info.png)
+!\[AI Info](screenshots/AI-Info.png)
 
----
+\---
 
-## 🔍 Detailed Generation Data
+## Detailed Generation Data
 
 Full breakdown including seed logic and sampler configuration:
 
-![AI Info 2](screenshots/AI-Info2.png)
+!\[AI Info 2](screenshots/AI-Info2.png)
 
----
+\---
 
-## 🔁 Advanced Workflow Support
+## Advanced Workflow Support
 
 Multi-pass workflows are fully supported and clearly displayed:
 
-![AI Info 3](screenshots/AI-Info3.png)
+!\[AI Info 3](screenshots/AI-Info3.png)
 
----
+\---
 
-## 🎬 Frame Extraction (NEW in V1.2.0)
+## Frame Extraction (NEW in V1.2.0)
 
-- Extract all frames from MP4 as PNG (lossless)
-- Uses bundled FFmpeg (no dependency)
-- Configurable output:
-  - next to video
-  - fixed folder
-- Smart cleanup (no folder spam)
-- Cancel anytime via GUI
+* Extract all frames from MP4 as PNG (lossless)
+* Uses bundled FFmpeg (no dependency)
+* Configurable output:
 
----
+  * next to video
+  * fixed folder
+* Smart cleanup (no folder spam)
+* Cancel anytime via GUI
 
-## 🚀 Features
+\---
 
-- Extract metadata from **PNG and MP4**
-- Works with:
-  - ComfyUI workflows  
-  - WAN / img2vid pipelines  
-  - A1111-style metadata (partial)
-- Instant prompt copy via right-click
-- Clean UI (no node graph mess)
+## Features
 
-### 🎯 Generation Data
+* Extract metadata from **PNG and MP4**
+* Works with:
 
-- Seed (robust detection, including `0`)
-- Noise seed
-- Add noise / denoise
-- Steps / CFG / sampler / scheduler
-- Workflow resolution, FPS, length
+  * ComfyUI workflows
+  * WAN / img2vid pipelines
+  * A1111-style metadata (partial)
+* Instant prompt copy via right-click
+* Clean UI (no node graph mess)
 
-### 🔁 Multi-Sampler Support
+### Generation Data
 
-- Detects multiple sampler passes automatically  
-- Works with advanced workflows  
+* Seed (robust detection, including `0`)
+* Noise seed
+* Add noise / denoise
+* Steps / CFG / sampler / scheduler
+* Workflow resolution, FPS, length
 
----
+### Multi-Sampler Support
 
-## ⚡ Why this tool?
+* Detects multiple sampler passes automatically
+* Works with advanced workflows
 
-- No need to launch ComfyUI  
-- Works directly from Explorer  
-- Much faster when browsing folders  
-- Clear summary instead of complex graphs  
+\---
 
-👉 Think of it like **MediaInfo for AI-generated content**
+## Why this tool?
 
----
+* No need to launch ComfyUI
+* Works directly from Explorer
+* Much faster when browsing folders
+* Clear summary instead of complex graphs
 
-## 📦 Installation
+Think of it like **MediaInfo for AI-generated content**
+
+\---
+
+## Installation
 
 Download the latest installer:
 
 https://github.com/Gaurox/AI-Metadata-Inspector/releases
 
----
+\---
 
-## 🧩 Supported Formats
+## Supported Formats
 
-### 🖼️ PNG
-- ComfyUI prompt JSON  
-- A1111 metadata  
+### PNG
 
-### 🎬 MP4
-- ComfyUI workflow JSON  
-- Multi-sampler workflows  
+* ComfyUI prompt JSON
+* A1111 metadata
 
----
+### MP4
 
-## 📄 License
+* ComfyUI workflow JSON
+* Multi-sampler workflows
 
-MIT License  
+\---
 
----
+## License
 
-## 👤 Author
+MIT License
+
+\---
+
+## Author
 
 Gaurox
+
