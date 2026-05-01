@@ -4,6 +4,31 @@ import json
 import re
 
 
+FAST_JSON_TAGS = ("prompt", "workflow", "Prompt", "Workflow")
+FAST_A1111_TAGS = ("Parameters", "Comment", "Description", "ImageDescription", "UserComment", "XPComment")
+FAST_DIRECT_TEXT_TAGS = (
+    "Prompt",
+    "prompt",
+    "XMP:Prompt",
+    "QuickTime:Comment",
+    "QuickTime:Description",
+    "Comment",
+    "Description",
+    "ImageDescription",
+    "UserComment",
+    "XPComment",
+    "Caption",
+    "Lyrics",
+    "ID3:Comment",
+    "ID3:Lyrics",
+    "QuickTime:Title",
+    "ID3:Title",
+    "Title",
+    "Subject",
+    "XMP:Description",
+)
+
+
 def looks_like_json(text: str) -> bool:
     t = text.strip()
     return (t.startswith("{") and t.endswith("}")) or (t.startswith("[") and t.endswith("]"))
@@ -76,10 +101,6 @@ def extract_text_from_prompt_node(node):
 
     inputs = node.get("inputs", {}) or {}
 
-    # Support large Comfy variety:
-    # - PrimitiveStringMultiline -> value
-    # - CLIPTextEncode / many custom nodes -> text
-    # - Qwen Image Edit / some edit nodes -> prompt
     for key in ("value", "text", "prompt"):
         val = inputs.get(key)
         if isinstance(val, str):
@@ -117,7 +138,6 @@ def resolve_workflow_text(data, node):
     if not isinstance(node, dict):
         return None
 
-    # 1) direct node payload first
     direct = extract_text_from_prompt_node(node)
     if direct is not None:
         return direct
@@ -145,7 +165,6 @@ def resolve_workflow_text(data, node):
             continue
 
         for link in links:
-            # old workflow link format: [id, src_node, src_slot, dst_node, dst_slot, type]
             if isinstance(link, list) and len(link) >= 6 and link[0] == wanted_link:
                 src_node_id = link[1]
                 src_node = node_by_id.get(src_node_id)
@@ -153,7 +172,6 @@ def resolve_workflow_text(data, node):
                 if resolved is not None:
                     return resolved
 
-            # newer link dict format
             if isinstance(link, dict) and link.get("id") == wanted_link:
                 src_node_id = link.get("origin_id")
                 src_node = node_by_id.get(src_node_id)
@@ -308,6 +326,97 @@ def is_probable_prompt(text: str) -> bool:
     lower = t.lower()
     junk = ["lavf", "isom", "mp42", "major_brand", "minor_version", "compatible_brands"]
     return not any(j in lower for j in junk)
+
+
+def _iter_values_for_tags(found, preferred_tags):
+    for preferred_tag in preferred_tags:
+        for tag, value in found:
+            if tag == preferred_tag:
+                yield value
+
+
+def _extract_json_prompt_from_found(found, mode="positive", preferred_tags=FAST_JSON_TAGS):
+    for value in _iter_values_for_tags(found, preferred_tags):
+        if not looks_like_json(value):
+            continue
+        try:
+            extracted = extract_comfy_prompt(value, mode=mode)
+        except Exception:
+            extracted = None
+        if extracted is not None:
+            return extracted.strip() if isinstance(extracted, str) else extracted
+
+    for _, value in found:
+        if not looks_like_json(value):
+            continue
+        try:
+            extracted = extract_comfy_prompt(value, mode=mode)
+        except Exception:
+            extracted = None
+        if extracted is not None:
+            return extracted.strip() if isinstance(extracted, str) else extracted
+
+    return None
+
+
+def _extract_a1111_from_found(found, mode="positive"):
+    extractor = extract_a1111_positive if mode == "positive" else extract_a1111_negative
+
+    for value in _iter_values_for_tags(found, FAST_A1111_TAGS):
+        extracted = extractor(value)
+        if extracted is not None:
+            return extracted.strip() if isinstance(extracted, str) else extracted
+
+    for _, value in found:
+        extracted = extractor(value)
+        if extracted is not None:
+            return extracted.strip() if isinstance(extracted, str) else extracted
+
+    return None
+
+
+def _extract_direct_prompt_from_found(found):
+    for value in _iter_values_for_tags(found, FAST_DIRECT_TEXT_TAGS):
+        if is_probable_prompt(value):
+            return value.strip()
+
+    for _, value in found:
+        if is_probable_prompt(value):
+            return value.strip()
+
+    return None
+
+
+def extract_prompt_data_fast(found):
+    positive = _extract_a1111_from_found(found, mode="positive")
+    negative = _extract_a1111_from_found(found, mode="negative")
+    a1111_params = {}
+
+    if not a1111_params:
+        for value in _iter_values_for_tags(found, FAST_A1111_TAGS):
+            a1111_params = extract_a1111_params(value)
+            if a1111_params:
+                break
+        if not a1111_params:
+            for _, value in found:
+                a1111_params = extract_a1111_params(value)
+                if a1111_params:
+                    break
+
+    if positive is None:
+        positive = _extract_direct_prompt_from_found(found)
+
+    if positive is None:
+        positive = _extract_json_prompt_from_found(found, mode="positive")
+
+    if negative is None:
+        negative = _extract_json_prompt_from_found(found, mode="negative")
+
+    return {
+        "positive": positive,
+        "negative": negative,
+        "a1111_params": a1111_params,
+    }
 
 
 def extract_prompt_data(found):

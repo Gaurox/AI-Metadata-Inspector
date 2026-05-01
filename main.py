@@ -10,11 +10,17 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from app_config import get_frame_extraction_config
-from exif_reader import EXIFTOOL, collect_found_tags, exiftool_exists, debug
+from exif_reader import (
+    EXIFTOOL,
+    collect_found_tags,
+    collect_found_tags_fast,
+    debug,
+    exiftool_exists,
+)
 from frame_extractor import extract_frames
 from info_builder import build_info_payload
 from info_window import show_info_window
-from prompt_extractors import extract_prompt_data
+from prompt_extractors import extract_prompt_data, extract_prompt_data_fast
 
 
 VALID_MODES = (
@@ -100,6 +106,29 @@ def export_payload(file_path: str, payload: dict, mode: str) -> int:
     return 8
 
 
+def _try_fast_prompt_copy(file_path: str, mode: str) -> int | None:
+    if mode not in ("positive", "negative"):
+        return None
+
+    found_fast = collect_found_tags_fast(file_path)
+    debug(f"FAST_FOUND_TAGS_COUNT={len(found_fast)}")
+
+    if not found_fast:
+        return None
+
+    prompt_data = extract_prompt_data_fast(found_fast)
+    extracted = prompt_data.get(mode)
+
+    if extracted is not None and (extracted != "" or mode == "negative"):
+        debug(f"FAST EXTRACTION MATCH mode={mode} len={len(extracted)}")
+        if copy_to_clipboard(extracted):
+            debug("EXIT 0: fast extraction copied")
+            return 0
+        debug("FAST PATH COPY FAILED, FALLBACK TO FULL")
+
+    return None
+
+
 def main():
     debug("=" * 70)
     debug(f"ARGV={sys.argv}")
@@ -137,6 +166,10 @@ def main():
     if not Path(file_path).exists():
         debug("EXIT 3: target file missing")
         sys.exit(3)
+
+    fast_result = _try_fast_prompt_copy(file_path, mode)
+    if fast_result is not None:
+        sys.exit(fast_result)
 
     found = collect_found_tags(file_path)
 

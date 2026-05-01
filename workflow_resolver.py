@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from workflow_utils import node_inputs, node_title, node_type, node_widgets
-
 
 def _build_prompt_dict_index(data):
     if not isinstance(data, dict):
@@ -59,177 +57,198 @@ def _resolve_math_expression(expr, a=None, b=None, c=None):
     return None
 
 
+_RESOLUTION_CACHE: dict[tuple[int, str, str], object] = {}
+
+
+def _cache_key(data, kind: str, ref):
+    return (id(data), kind, repr(ref))
+
+
+def _cache_get(data, kind: str, ref):
+    return _RESOLUTION_CACHE.get(_cache_key(data, kind, ref), None)
+
+
+def _cache_set(data, kind: str, ref, value):
+    _RESOLUTION_CACHE[_cache_key(data, kind, ref)] = value
+    return value
+
+
 def _resolve_prompt_dict_ref(data, ref):
-    if not isinstance(data, dict):
-        return None
+    cached = _cache_get(data, "prompt_dict", ref)
+    if cached is not None:
+        return cached
 
-    if isinstance(ref, (int, float)):
-        return ref
+    result = None
 
-    if isinstance(ref, str):
-        return ref
+    if isinstance(data, dict):
+        if isinstance(ref, (int, float)):
+            result = ref
+        elif isinstance(ref, str):
+            result = ref
+        elif isinstance(ref, list) and ref:
+            ref_id = str(ref[0])
+            node = data.get(ref_id)
+            if isinstance(node, dict):
+                inputs = node.get("inputs", {}) or {}
+                widgets = node.get("widgets_values", []) or []
+                ntype = str(node.get("class_type", "") or node.get("type", "") or "").lower()
+                meta = node.get("_meta", {}) or {}
+                title = str(meta.get("title", "") or node.get("title", "") or "").lower()
 
-    if isinstance(ref, list) and ref:
-        ref_id = str(ref[0])
-        node = data.get(ref_id)
-        if not isinstance(node, dict):
-            return None
+                for key in (
+                    "value",
+                    "text",
+                    "prompt",
+                    "width",
+                    "height",
+                    "length",
+                    "frame_rate",
+                    "fps",
+                    "cfg",
+                    "steps",
+                    "noise_seed",
+                    "seed",
+                    "ckpt_name",
+                    "clip_name",
+                    "text_encoder",
+                    "vae_name",
+                    "model_name",
+                    "lora_name",
+                    "sampler_name",
+                    "scheduler",
+                    "sigmas",
+                    "expression",
+                ):
+                    if key in inputs:
+                        val = inputs.get(key)
+                        if isinstance(val, list):
+                            nested = _resolve_prompt_dict_ref(data, val)
+                            if nested is not None:
+                                result = nested
+                                break
+                        elif val is not None:
+                            result = val
+                            break
 
-        inputs = node.get("inputs", {}) or {}
-        widgets = node.get("widgets_values", []) or []
-        ntype = node_type(node).lower()
-        title = node_title(node).lower()
+                if result is None and widgets:
+                    slot = None
+                    if len(ref) > 1 and isinstance(ref[1], int):
+                        slot = ref[1]
 
-        for key in (
-            "value",
-            "text",
-            "prompt",
-            "width",
-            "height",
-            "length",
-            "frame_rate",
-            "fps",
-            "cfg",
-            "steps",
-            "noise_seed",
-            "seed",
-            "ckpt_name",
-            "clip_name",
-            "text_encoder",
-            "vae_name",
-            "model_name",
-            "lora_name",
-            "sampler_name",
-            "scheduler",
-            "sigmas",
-            "expression",
-        ):
-            if key in inputs:
-                val = inputs.get(key)
-                if isinstance(val, list):
-                    nested = _resolve_prompt_dict_ref(data, val)
-                    if nested is not None:
-                        return nested
-                elif val is not None:
-                    return val
+                    if slot is not None and 0 <= slot < len(widgets):
+                        result = widgets[slot]
+                    else:
+                        result = widgets[0]
 
-        if widgets:
-            slot = None
-            if len(ref) > 1 and isinstance(ref[1], int):
-                slot = ref[1]
+                if result is None and ("math expression" in title or "mathexpression" in ntype):
+                    expr = inputs.get("expression")
+                    if isinstance(expr, str):
+                        a = _resolve_prompt_dict_ref(data, inputs.get("a"))
+                        if expr.strip().lower() == "a":
+                            result = a
+                        elif expr.strip().lower() == "a/2" and isinstance(a, (int, float)):
+                            result = int(a / 2)
+                        else:
+                            result = expr
 
-            if slot is not None and 0 <= slot < len(widgets):
-                return widgets[slot]
-
-            return widgets[0]
-
-        if "math expression" in title or "mathexpression" in ntype:
-            expr = inputs.get("expression")
-            if isinstance(expr, str):
-                a = _resolve_prompt_dict_ref(data, inputs.get("a"))
-                if expr.strip().lower() == "a":
-                    return a
-                if expr.strip().lower() == "a/2" and isinstance(a, (int, float)):
-                    return int(a / 2)
-                return expr
-
-        return None
-
-    return None
+    return _cache_set(data, "prompt_dict", ref, result)
 
 
 def _resolve_workflow_ref(data, ref, _depth=0):
+    cached = _cache_get(data, "workflow", ref)
+    if cached is not None:
+        return cached
+
     if _depth > 12:
-        return None
+        return _cache_set(data, "workflow", ref, None)
 
-    if not isinstance(data, dict):
-        return None
+    result = None
 
-    if isinstance(ref, (int, float, bool)):
-        return ref
+    if isinstance(data, dict):
+        if isinstance(ref, (int, float, bool)):
+            result = ref
+        elif isinstance(ref, str):
+            result = ref
+        elif isinstance(ref, list) and ref:
+            origin_id = str(ref[0])
+            origin_slot = ref[1] if len(ref) > 1 else 0
 
-    if isinstance(ref, str):
-        return ref
+            nodes_by_id = _build_workflow_index(data)
+            node = nodes_by_id.get(origin_id)
+            if isinstance(node, dict):
+                inputs = node.get("inputs", {}) or []
+                widgets = node.get("widgets_values", []) or []
+                ntype = str(node.get("class_type", "") or node.get("type", "") or "").lower()
+                meta = node.get("_meta", {}) or {}
+                title = str(meta.get("title", "") or node.get("title", "") or "").lower()
 
-    if not isinstance(ref, list) or not ref:
-        return None
+                for key in (
+                    "value",
+                    "text",
+                    "prompt",
+                    "width",
+                    "height",
+                    "length",
+                    "frame_rate",
+                    "fps",
+                    "cfg",
+                    "steps",
+                    "noise_seed",
+                    "seed",
+                    "ckpt_name",
+                    "clip_name",
+                    "text_encoder",
+                    "vae_name",
+                    "model_name",
+                    "lora_name",
+                    "sampler_name",
+                    "scheduler",
+                    "sigmas",
+                    "expression",
+                ):
+                    if isinstance(inputs, dict) and key in inputs:
+                        val = inputs.get(key)
+                        if isinstance(val, list):
+                            nested = _resolve_workflow_ref(data, val, _depth + 1)
+                            if nested is not None:
+                                result = nested
+                                break
+                        elif val is not None:
+                            if key == "expression":
+                                a = _resolve_workflow_ref(data, inputs.get("a"), _depth + 1) if isinstance(inputs, dict) else None
+                                b = _resolve_workflow_ref(data, inputs.get("b"), _depth + 1) if isinstance(inputs, dict) else None
+                                c = _resolve_workflow_ref(data, inputs.get("c"), _depth + 1) if isinstance(inputs, dict) else None
+                                resolved_expr = _resolve_math_expression(val, a=a, b=b, c=c)
+                                result = resolved_expr if resolved_expr is not None else val
+                            else:
+                                result = val
+                            break
 
-    origin_id = str(ref[0])
-    origin_slot = ref[1] if len(ref) > 1 else 0
+                if result is None and ("primitiveint" in ntype or "primitiveboolean" in ntype or "floatconstant" in ntype):
+                    if widgets:
+                        result = widgets[0]
 
-    nodes_by_id = _build_workflow_index(data)
-    node = nodes_by_id.get(origin_id)
-    if not isinstance(node, dict):
-        return None
-
-    inputs = node_inputs(node)
-    widgets = node_widgets(node)
-    ntype = node_type(node).lower()
-    title = node_title(node).lower()
-
-    for key in (
-        "value",
-        "text",
-        "prompt",
-        "width",
-        "height",
-        "length",
-        "frame_rate",
-        "fps",
-        "cfg",
-        "steps",
-        "noise_seed",
-        "seed",
-        "ckpt_name",
-        "clip_name",
-        "text_encoder",
-        "vae_name",
-        "model_name",
-        "lora_name",
-        "sampler_name",
-        "scheduler",
-        "sigmas",
-        "expression",
-    ):
-        if isinstance(inputs, dict) and key in inputs:
-            val = inputs.get(key)
-            if isinstance(val, list):
-                nested = _resolve_workflow_ref(data, val, _depth + 1)
-                if nested is not None:
-                    return nested
-            elif val is not None:
-                if key == "expression":
+                if result is None and ("math expression" in title or "mathexpression" in ntype):
+                    expr = widgets[0] if widgets else (inputs.get("expression") if isinstance(inputs, dict) else None)
                     a = _resolve_workflow_ref(data, inputs.get("a"), _depth + 1) if isinstance(inputs, dict) else None
                     b = _resolve_workflow_ref(data, inputs.get("b"), _depth + 1) if isinstance(inputs, dict) else None
                     c = _resolve_workflow_ref(data, inputs.get("c"), _depth + 1) if isinstance(inputs, dict) else None
-                    resolved_expr = _resolve_math_expression(val, a=a, b=b, c=c)
-                    return resolved_expr if resolved_expr is not None else val
-                return val
+                    resolved_expr = _resolve_math_expression(expr, a=a, b=b, c=c)
+                    result = resolved_expr if resolved_expr is not None else expr
 
-    if "primitiveint" in ntype or "primitiveboolean" in ntype or "floatconstant" in ntype:
-        if widgets:
-            return widgets[0]
+                if result is None and "ksamplerselect" in ntype and widgets:
+                    result = widgets[0]
 
-    if "math expression" in title or "mathexpression" in ntype:
-        expr = widgets[0] if widgets else (inputs.get("expression") if isinstance(inputs, dict) else None)
-        a = _resolve_workflow_ref(data, inputs.get("a"), _depth + 1) if isinstance(inputs, dict) else None
-        b = _resolve_workflow_ref(data, inputs.get("b"), _depth + 1) if isinstance(inputs, dict) else None
-        c = _resolve_workflow_ref(data, inputs.get("c"), _depth + 1) if isinstance(inputs, dict) else None
-        resolved_expr = _resolve_math_expression(expr, a=a, b=b, c=c)
-        return resolved_expr if resolved_expr is not None else expr
+                if result is None and "manualsigmas" in ntype and widgets:
+                    result = widgets[0]
 
-    if "ksamplerselect" in ntype and widgets:
-        return widgets[0]
+                if result is None and widgets:
+                    if isinstance(origin_slot, int) and 0 <= origin_slot < len(widgets):
+                        result = widgets[origin_slot]
+                    else:
+                        result = widgets[0]
 
-    if "manualsigmas" in ntype and widgets:
-        return widgets[0]
-
-    if widgets:
-        if isinstance(origin_slot, int) and 0 <= origin_slot < len(widgets):
-            return widgets[origin_slot]
-        return widgets[0]
-
-    return None
+    return _cache_set(data, "workflow", ref, result)
 
 
 def _resolve_value(data, value):

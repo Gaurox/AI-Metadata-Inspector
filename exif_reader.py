@@ -19,22 +19,19 @@ def debug(msg: str) -> None:
 
 EXIFTOOL = str(BASE_DIR / "exiftool.exe")
 
-TAGS = [
+# Priority-oriented text tags for fast prompt copy operations.
+FAST_TEXT_TAGS = [
     "prompt",
     "Prompt",
     "workflow",
     "Workflow",
     "Parameters",
+    "XMP:Prompt",
     "Comment",
     "Description",
     "ImageDescription",
     "UserComment",
     "XPComment",
-    "Caption",
-    "Lyrics",
-    "Title",
-    "Subject",
-    "XMP:Prompt",
     "XMP:Description",
     "QuickTime:Comment",
     "QuickTime:Description",
@@ -42,7 +39,14 @@ TAGS = [
     "ID3:Comment",
     "ID3:Lyrics",
     "ID3:Title",
+    "Caption",
+    "Lyrics",
+    "Title",
+    "Subject",
 ]
+
+# Keep the historical tag list for compatibility with the rest of the app.
+TAGS = list(FAST_TEXT_TAGS)
 
 MEDIA_TAGS = [
     "FileType",
@@ -57,8 +61,8 @@ MEDIA_TAGS = [
     "FileSize",
 ]
 
-_ALL_TAGS = TAGS + [tag for tag in MEDIA_TAGS if tag not in TAGS]
-_METADATA_CACHE: dict[str, dict[str, str]] = {}
+FULL_INFO_TAGS = FAST_TEXT_TAGS + [tag for tag in MEDIA_TAGS if tag not in FAST_TEXT_TAGS]
+_METADATA_CACHE: dict[tuple[str, tuple[str, ...]], dict[str, str]] = {}
 
 
 def get_hidden_subprocess_kwargs():
@@ -139,16 +143,13 @@ def _build_exiftool_cmd(file_path: str, tags: list[str], use_utf8_filename: bool
 
 
 def _run_exiftool_json(file_path: str, tags: list[str]) -> dict[str, str]:
-    # Essai 1 : comportement actuel
     cmd_utf8 = _build_exiftool_cmd(file_path, tags, use_utf8_filename=True)
-    debug(f"EXIFTOOL TRY UTF8 PATH={file_path}")
+    debug(f"EXIFTOOL TRY UTF8 PATH={file_path} TAGS={len(tags)}")
     data, stderr = _run_exiftool_cmd(cmd_utf8)
 
     if data:
         return data
 
-    # Si le chemin contient des caractères non ASCII ou si exiftool a renvoyé "file not found",
-    # on réessaie sans -charset filename=UTF8
     path_has_non_ascii = any(ord(ch) > 127 for ch in str(file_path))
     stderr_lower = (stderr or "").lower()
 
@@ -170,19 +171,30 @@ def _run_exiftool_json(file_path: str, tags: list[str]) -> dict[str, str]:
     return {}
 
 
+def _cache_key(file_path: str, tags: list[str]) -> tuple[str, tuple[str, ...]]:
+    normalized_tags = tuple(dict.fromkeys(str(tag) for tag in tags))
+    return str(Path(file_path)), normalized_tags
+
+
 def exiftool_exists() -> bool:
     return Path(EXIFTOOL).exists()
 
 
-def collect_all_metadata(file_path: str, force_refresh: bool = False) -> dict[str, str]:
-    cache_key = str(Path(file_path))
-    if not force_refresh and cache_key in _METADATA_CACHE:
-        return dict(_METADATA_CACHE[cache_key])
+def collect_metadata_for_tags(file_path: str, tags: list[str], force_refresh: bool = False) -> dict[str, str]:
+    unique_tags = list(dict.fromkeys(str(tag) for tag in tags))
+    key = _cache_key(file_path, unique_tags)
 
-    metadata = _run_exiftool_json(file_path, _ALL_TAGS)
-    _METADATA_CACHE[cache_key] = dict(metadata)
-    debug(f"EXIFTOOL JSON TAGS_FOUND={len(metadata)}")
+    if not force_refresh and key in _METADATA_CACHE:
+        return dict(_METADATA_CACHE[key])
+
+    metadata = _run_exiftool_json(file_path, unique_tags)
+    _METADATA_CACHE[key] = dict(metadata)
+    debug(f"EXIFTOOL JSON TAGS_FOUND={len(metadata)} REQUESTED={len(unique_tags)}")
     return dict(metadata)
+
+
+def collect_all_metadata(file_path: str, force_refresh: bool = False) -> dict[str, str]:
+    return collect_metadata_for_tags(file_path, FULL_INFO_TAGS, force_refresh=force_refresh)
 
 
 def run_exiftool(tag: str, file_path: str) -> str:
@@ -190,14 +202,23 @@ def run_exiftool(tag: str, file_path: str) -> str:
     return metadata.get(tag, "")
 
 
-def collect_found_tags(file_path: str) -> list[tuple[str, str]]:
-    metadata = collect_all_metadata(file_path)
+def _collect_found_tags_from_metadata(metadata: dict[str, str], tags: list[str]) -> list[tuple[str, str]]:
     found: list[tuple[str, str]] = []
-    for tag in TAGS:
+    for tag in tags:
         value = metadata.get(tag, "")
         if value:
             found.append((tag, value))
     return found
+
+
+def collect_found_tags_fast(file_path: str) -> list[tuple[str, str]]:
+    metadata = collect_metadata_for_tags(file_path, FAST_TEXT_TAGS)
+    return _collect_found_tags_from_metadata(metadata, FAST_TEXT_TAGS)
+
+
+def collect_found_tags(file_path: str) -> list[tuple[str, str]]:
+    metadata = collect_all_metadata(file_path)
+    return _collect_found_tags_from_metadata(metadata, TAGS)
 
 
 def collect_media_info(file_path: str) -> dict[str, str]:

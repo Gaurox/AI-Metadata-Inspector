@@ -80,9 +80,23 @@ public static class ShellThumbnail
 }
 "@
 
-try {
-    Add-Type -TypeDefinition $script:ThumbnailCode -ReferencedAssemblies System.Drawing | Out-Null
-} catch {
+$script:ShellThumbnailReady = $false
+
+function Ensure-ShellThumbnailSupport {
+    if ($script:ShellThumbnailReady) {
+        return $true
+    }
+
+    try {
+        Add-Type -TypeDefinition $script:ThumbnailCode -ReferencedAssemblies System.Drawing | Out-Null
+    } catch {
+        if (-not ([System.Management.Automation.PSTypeName]'ShellThumbnail').Type) {
+            return $false
+        }
+    }
+
+    $script:ShellThumbnailReady = $true
+    return $true
 }
 
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -159,25 +173,20 @@ function Set-CopiedState($button, $originalText) {
     $timer.Start()
 }
 
-function Get-AutoHeight($text, $width) {
-    $tmp = New-Object System.Windows.Forms.RichTextBox
-    $tmp.Width = $width
-    $tmp.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-    $tmp.Multiline = $true
-    $tmp.WordWrap = $true
-    $tmp.Text = Normalize-DisplayText $text ""
+function Get-FastPromptHeight($text, [int]$baseHeight = 120, [int]$lineHeight = 18, [int]$minHeight = 110, [int]$maxHeight = 260) {
+    $normalized = Normalize-DisplayText $text ""
+    if ([string]::IsNullOrWhiteSpace($normalized)) {
+        return $minHeight
+    }
 
-    $tmp.Height = 1
-    $tmp.SelectAll()
-    $tmp.SelectionFont = $tmp.Font
+    $lineCount = ($normalized -split "`r?`n").Count
+    if ($lineCount -lt 1) { $lineCount = 1 }
 
-    $height = $tmp.GetPositionFromCharIndex($tmp.TextLength).Y + 30
+    $estimated = $baseHeight + (($lineCount - 4) * $lineHeight)
+    if ($estimated -lt $minHeight) { $estimated = $minHeight }
+    if ($estimated -gt $maxHeight) { $estimated = $maxHeight }
 
-    if ($height -lt 80) { $height = 80 }
-    if ($height -gt 400) { $height = 400 }
-
-    $tmp.Dispose()
-    return $height
+    return [int]$estimated
 }
 
 function Try-GetImagePreview($filePath) {
@@ -201,6 +210,10 @@ function Try-GetImagePreview($filePath) {
 function Try-GetShellThumbnail($filePath, [int]$width, [int]$height) {
     try {
         if (-not [System.IO.File]::Exists($filePath)) {
+            return $null
+        }
+
+        if (-not (Ensure-ShellThumbnailSupport)) {
             return $null
         }
 
@@ -314,6 +327,38 @@ function New-Card($title, [int]$height = 120) {
     return $panel
 }
 
+function Format-InfoValue($value, [string]$fallback = "(not found)") {
+    $text = SafeText $value ""
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        return $fallback
+    }
+    return $text
+}
+
+function Add-SummaryItem($parent, [int]$x, [int]$y, [int]$w, [string]$labelText, $value) {
+    $label = New-Object System.Windows.Forms.Label
+    $label.Text = $labelText
+    $label.Location = New-Object System.Drawing.Point($x, $y)
+    $label.Size = New-Object System.Drawing.Size($w, 18)
+    $label.Font = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
+    $label.ForeColor = [System.Drawing.Color]::DimGray
+    $label.BackColor = [System.Drawing.Color]::White
+    $parent.Controls.Add($label)
+
+    $valueLabel = New-Object System.Windows.Forms.Label
+    $valueLabel.Text = Format-InfoValue $value
+    $valueLabel.Location = New-Object System.Drawing.Point($x, ($y + 20))
+    $valueLabel.Size = New-Object System.Drawing.Size($w, 22)
+    $valueLabel.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 9)
+    $valueLabel.ForeColor = [System.Drawing.Color]::Black
+    if ($valueLabel.Text -eq "(not found)") {
+        $valueLabel.ForeColor = [System.Drawing.Color]::DarkGray
+    }
+    $valueLabel.BackColor = [System.Drawing.Color]::White
+    $valueLabel.AutoEllipsis = $true
+    $parent.Controls.Add($valueLabel)
+}
+
 function New-ReadOnlyTextBox([int]$x, [int]$y, [int]$w, [int]$h, $text, [bool]$multiline = $false) {
     if ($multiline) {
         $tb = New-Object System.Windows.Forms.RichTextBox
@@ -329,7 +374,13 @@ function New-ReadOnlyTextBox([int]$x, [int]$y, [int]$w, [int]$h, $text, [bool]$m
         $tb.WordWrap = $true
         $tb.DetectUrls = $false
         $tb.ShortcutsEnabled = $true
-        $tb.Text = Normalize-DisplayText $text ""
+        $rawText = Normalize-DisplayText $text ""
+        $tb.Tag = [hashtable]@{ RawText = $rawText }
+        $tb.Text = $rawText
+        if ([string]::IsNullOrWhiteSpace($tb.Text)) {
+            $tb.Text = "(not found)"
+            $tb.ForeColor = [System.Drawing.Color]::DarkGray
+        }
         return $tb
     }
 
@@ -340,8 +391,12 @@ function New-ReadOnlyTextBox([int]$x, [int]$y, [int]$w, [int]$h, $text, [bool]$m
     $tb.ReadOnly = $true
     $tb.BackColor = [System.Drawing.Color]::White
     $tb.ForeColor = [System.Drawing.Color]::Black
-    $tb.Text = SafeText $text ""
+    $tb.Tag = [hashtable]@{ RawText = SafeText $text "" }
+    $tb.Text = Format-InfoValue $text
     $tb.BorderStyle = "FixedSingle"
+    if ($tb.Text -eq "(not found)") {
+        $tb.ForeColor = [System.Drawing.Color]::DarkGray
+    }
     return $tb
 }
 
@@ -351,6 +406,9 @@ function Resolve-CopySourceText($copySource) {
     }
 
     if ($copySource -is [System.Windows.Forms.TextBoxBase]) {
+        if (($copySource.Tag -is [hashtable]) -and $copySource.Tag.ContainsKey("RawText")) {
+            return Normalize-DisplayText $copySource.Tag["RawText"] ""
+        }
         return Normalize-DisplayText $copySource.Text ""
     }
 
@@ -399,7 +457,7 @@ function Add-CopyButton($parent, [int]$x, [int]$y, [int]$w, [int]$h, $copySource
     return $btn
 }
 
-function Add-FieldRow($parent, [int]$top, [string]$labelText, $value, [string]$copyLabel = "Copy") {
+function Add-FieldRow($parent, [int]$top, [string]$labelText, $value, [string]$copyLabel = "Copy", [bool]$showCopy = $false) {
     $labelBox = New-Object System.Windows.Forms.Panel
     $labelBox.Location = New-Object System.Drawing.Point(14, $top)
     $labelBox.Size = New-Object System.Drawing.Size(155, 26)
@@ -418,8 +476,15 @@ function Add-FieldRow($parent, [int]$top, [string]$labelText, $value, [string]$c
     $label.AutoEllipsis = $true
     $labelBox.Controls.Add($label)
 
-    $tb = New-ReadOnlyTextBox 182 $top 730 26 $value $false
+    $textWidth = 846
+    if ($showCopy) {
+        $textWidth = 730
+    }
+
+    $tb = New-ReadOnlyTextBox 182 $top $textWidth 26 $value $false
     $parent.Controls.Add($tb)
 
-    Add-CopyButton $parent 930 $top 100 26 $tb $copyLabel | Out-Null
+    if ($showCopy) {
+        Add-CopyButton $parent 930 $top 100 26 $tb $copyLabel | Out-Null
+    }
 }

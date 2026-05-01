@@ -1,5 +1,5 @@
 #define MyAppName "AI Metadata Inspector"
-#define MyAppVersion "1.2.1"
+#define MyAppVersion "1.3.0"
 #define MyAppPublisher "Gaurox"
 #define MyAppURL "https://github.com/Gaurox/AI-Metadata-Inspector"
 
@@ -31,8 +31,8 @@ SetupIconFile=icons\info.ico
 AllowNoIcons=yes
 UsePreviousAppDir=yes
 
-VersionInfoVersion=1.2.1.0
-VersionInfoTextVersion=1.2.1
+VersionInfoVersion=1.3.0.0
+VersionInfoTextVersion=1.3.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -52,11 +52,13 @@ Source: "workflow_extractors.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "workflow_seed.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "info_builder.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "info_window.py"; DestDir: "{app}"; Flags: ignoreversion
+Source: "info_window_py.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "app_config.py"; DestDir: "{app}"; Flags: ignoreversion
 Source: "frame_extractor.py"; DestDir: "{app}"; Flags: ignoreversion
 
 Source: "ps\info_window_helpers.ps1"; DestDir: "{app}\ps"; Flags: ignoreversion
 Source: "ps\info_window_layout.ps1"; DestDir: "{app}\ps"; Flags: ignoreversion
+Source: "ps\info_window_launcher.ps1"; DestDir: "{app}\ps"; Flags: ignoreversion
 Source: "ps\frame_extract_window.ps1"; DestDir: "{app}\ps"; Flags: ignoreversion
 
 Source: "run_prompt_tool.vbs"; DestDir: "{app}"; Flags: ignoreversion
@@ -72,6 +74,7 @@ Source: "ffmpeg.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "python_embeded\*"; DestDir: "{app}\python_embeded"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 Source: "icons\*"; DestDir: "{app}\icons"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "screenshots\*"; DestDir: "{app}\screenshots"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
@@ -117,7 +120,16 @@ Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.4_ExtractFrames"; Valu
 Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.4_ExtractFrames\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" extract_frames"; Flags: uninsdeletekey; Check: ShouldInstallExtractFrames
 
 [Code]
+const
+  CurrentAppVersion = '{#MyAppVersion}';
+  UninstallRegistryKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{8C19D0A4-0E77-4A76-9D4B-7B7F0F23B123}_is1';
+
 var
+  MaintenancePage: TWizardPage;
+  RadioMaintenanceUpdate: TRadioButton;
+  RadioMaintenanceModify: TRadioButton;
+  RadioMaintenanceUninstall: TRadioButton;
+
   ContextMenuPage: TWizardPage;
   CheckPositivePrompt: TNewCheckBox;
   CheckNegativePrompt: TNewCheckBox;
@@ -135,6 +147,13 @@ var
   RadioFixedFolderSubfolder: TRadioButton;
   RadioFixedFolderShared: TRadioButton;
 
+  InstalledVersion: string;
+  InstalledUninstallString: string;
+  InstalledAppDir: string;
+  HasInstalledVersion: Boolean;
+  InstalledVersionIsOlder: Boolean;
+  SkipSetupExitConfirmation: Boolean;
+
 function EscapeJson(const S: string): string;
 var
   T: string;
@@ -143,6 +162,194 @@ begin
   StringChangeEx(T, '\', '\\', True);
   StringChangeEx(T, '"', '\"', True);
   Result := T;
+end;
+
+function ContextMenuKeyExists(const Extension, KeyName: string): Boolean;
+begin
+  Result := RegKeyExists(HKCR, 'SystemFileAssociations\' + Extension + '\shell\' + KeyName);
+end;
+
+function GetVersionPart(const Version: string; const PartIndex: Integer): Integer;
+var
+  I: Integer;
+  CurrentPart: Integer;
+  CurrentText: string;
+  Ch: string;
+begin
+  Result := 0;
+  CurrentPart := 0;
+  CurrentText := '';
+
+  for I := 1 to Length(Version) do
+  begin
+    Ch := Copy(Version, I, 1);
+    if Ch = '.' then
+    begin
+      if CurrentPart = PartIndex then
+      begin
+        Result := StrToIntDef(CurrentText, 0);
+        exit;
+      end;
+
+      CurrentPart := CurrentPart + 1;
+      CurrentText := '';
+    end
+    else
+      CurrentText := CurrentText + Ch;
+  end;
+
+  if CurrentPart = PartIndex then
+    Result := StrToIntDef(CurrentText, 0);
+end;
+
+function CompareVersions(const LeftVersion, RightVersion: string): Integer;
+var
+  I: Integer;
+  LeftPart: Integer;
+  RightPart: Integer;
+begin
+  Result := 0;
+
+  for I := 0 to 3 do
+  begin
+    LeftPart := GetVersionPart(LeftVersion, I);
+    RightPart := GetVersionPart(RightVersion, I);
+
+    if LeftPart < RightPart then
+    begin
+      Result := -1;
+      exit;
+    end;
+
+    if LeftPart > RightPart then
+    begin
+      Result := 1;
+      exit;
+    end;
+  end;
+end;
+
+function IsOurDisplayName(const DisplayName: string): Boolean;
+var
+  AppNameWithSpace: string;
+begin
+  AppNameWithSpace := '{#MyAppName} ';
+  Result := (DisplayName = '{#MyAppName}') or
+    (Copy(DisplayName, 1, Length(AppNameWithSpace)) = AppNameWithSpace);
+end;
+
+function ExtractVersionFromDisplayName(const DisplayName: string): string;
+var
+  AppNameWithSpace: string;
+begin
+  AppNameWithSpace := '{#MyAppName} ';
+  Result := '';
+
+  if Copy(DisplayName, 1, Length(AppNameWithSpace)) = AppNameWithSpace then
+    Result := Copy(DisplayName, Length(AppNameWithSpace) + 1, Length(DisplayName));
+end;
+
+function TryReadInstallFromKey(const RootKey: Integer; const Subkey: string): Boolean;
+var
+  DisplayName: string;
+begin
+  Result := False;
+
+  if RegQueryStringValue(RootKey, Subkey, 'DisplayName', DisplayName) then
+  begin
+    if IsOurDisplayName(DisplayName) then
+    begin
+      HasInstalledVersion := True;
+
+      if not RegQueryStringValue(RootKey, Subkey, 'DisplayVersion', InstalledVersion) then
+        InstalledVersion := ExtractVersionFromDisplayName(DisplayName);
+
+      RegQueryStringValue(RootKey, Subkey, 'UninstallString', InstalledUninstallString);
+      RegQueryStringValue(RootKey, Subkey, 'InstallLocation', InstalledAppDir);
+      Result := True;
+    end;
+  end;
+end;
+
+function FindInstalledByDisplayName(const RootKey: Integer): Boolean;
+var
+  Subkeys: TArrayOfString;
+  I: Integer;
+  BaseKey: string;
+begin
+  Result := False;
+  BaseKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall';
+
+  if RegGetSubkeyNames(RootKey, BaseKey, Subkeys) then
+  begin
+    for I := 0 to GetArrayLength(Subkeys) - 1 do
+    begin
+      if TryReadInstallFromKey(RootKey, BaseKey + '\' + Subkeys[I]) then
+      begin
+        Result := True;
+        exit;
+      end;
+    end;
+  end;
+end;
+
+procedure DetectInstalledVersion();
+begin
+  HasInstalledVersion := False;
+  InstalledVersion := '';
+  InstalledUninstallString := '';
+  InstalledAppDir := '';
+  InstalledVersionIsOlder := False;
+  SkipSetupExitConfirmation := False;
+
+  TryReadInstallFromKey(HKLM32, UninstallRegistryKey);
+
+  if not HasInstalledVersion then
+    TryReadInstallFromKey(HKLM, UninstallRegistryKey);
+
+  if not HasInstalledVersion then
+    FindInstalledByDisplayName(HKLM32);
+
+  if not HasInstalledVersion then
+    FindInstalledByDisplayName(HKLM);
+
+  if HasInstalledVersion then
+  begin
+    if InstalledVersion = '' then
+      InstalledVersion := '0.0.0';
+
+    InstalledVersionIsOlder := CompareVersions(InstalledVersion, CurrentAppVersion) < 0;
+  end;
+end;
+
+procedure RemoveContextMenuEntries();
+begin
+  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.png\shell\AI.1_CopyPositivePrompt');
+  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt');
+  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo');
+
+  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.mp4\shell\AI.1_CopyPositivePrompt');
+  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt');
+  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo');
+  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.mp4\shell\AI.4_ExtractFrames');
+end;
+
+function LaunchExistingUninstaller(): Boolean;
+var
+  ErrorCode: Integer;
+begin
+  Result := False;
+
+  if InstalledUninstallString = '' then
+  begin
+    MsgBox('The installed uninstaller could not be found.', mbError, MB_OK);
+    exit;
+  end;
+
+  Result := ShellExec('', RemoveQuotes(InstalledUninstallString), '', '', SW_SHOWNORMAL, ewNoWait, ErrorCode);
+
+  if not Result then
+    MsgBox('Unable to launch the installed uninstaller. Error code: ' + IntToStr(ErrorCode), mbError, MB_OK);
 end;
 
 function ShouldInstallPositivePrompt(): Boolean;
@@ -196,8 +403,56 @@ end;
 
 procedure InitializeWizard();
 var
+  MaintenanceInfoLabel: TNewStaticText;
   ContextInfoLabel: TNewStaticText;
 begin
+  DetectInstalledVersion();
+
+  if HasInstalledVersion and (InstalledAppDir <> '') then
+    WizardForm.DirEdit.Text := InstalledAppDir;
+
+  MaintenancePage := CreateCustomPage(
+    wpWelcome,
+    'Existing Installation',
+    'Choose what you want to do with AI Metadata Inspector'
+  );
+
+  MaintenanceInfoLabel := TNewStaticText.Create(MaintenancePage);
+  MaintenanceInfoLabel.Parent := MaintenancePage.Surface;
+  MaintenanceInfoLabel.Left := ScaleX(0);
+  MaintenanceInfoLabel.Top := ScaleY(8);
+  MaintenanceInfoLabel.Width := MaintenancePage.SurfaceWidth;
+  MaintenanceInfoLabel.Height := ScaleY(42);
+
+  if HasInstalledVersion and InstalledVersionIsOlder then
+    MaintenanceInfoLabel.Caption := 'AI Metadata Inspector ' + InstalledVersion + ' is already installed. This setup contains version ' + CurrentAppVersion + '.'
+  else
+    MaintenanceInfoLabel.Caption := 'AI Metadata Inspector ' + CurrentAppVersion + ' is already installed.';
+
+  RadioMaintenanceUpdate := TRadioButton.Create(MaintenancePage);
+  RadioMaintenanceUpdate.Parent := MaintenancePage.Surface;
+  RadioMaintenanceUpdate.Left := ScaleX(0);
+  RadioMaintenanceUpdate.Top := MaintenanceInfoLabel.Top + ScaleY(48);
+  RadioMaintenanceUpdate.Width := MaintenancePage.SurfaceWidth;
+  RadioMaintenanceUpdate.Caption := 'Update to version ' + CurrentAppVersion + ' and keep the selected modules';
+  RadioMaintenanceUpdate.Checked := InstalledVersionIsOlder;
+  RadioMaintenanceUpdate.Enabled := InstalledVersionIsOlder;
+
+  RadioMaintenanceModify := TRadioButton.Create(MaintenancePage);
+  RadioMaintenanceModify.Parent := MaintenancePage.Surface;
+  RadioMaintenanceModify.Left := ScaleX(0);
+  RadioMaintenanceModify.Top := RadioMaintenanceUpdate.Top + ScaleY(28);
+  RadioMaintenanceModify.Width := MaintenancePage.SurfaceWidth;
+  RadioMaintenanceModify.Caption := 'Modify installed right-click modules';
+  RadioMaintenanceModify.Checked := not InstalledVersionIsOlder;
+
+  RadioMaintenanceUninstall := TRadioButton.Create(MaintenancePage);
+  RadioMaintenanceUninstall.Parent := MaintenancePage.Surface;
+  RadioMaintenanceUninstall.Left := ScaleX(0);
+  RadioMaintenanceUninstall.Top := RadioMaintenanceModify.Top + ScaleY(28);
+  RadioMaintenanceUninstall.Width := MaintenancePage.SurfaceWidth;
+  RadioMaintenanceUninstall.Caption := 'Uninstall AI Metadata Inspector';
+
   ContextMenuPage := CreateCustomPage(
     wpSelectDir,
     'Context Menu Options',
@@ -218,7 +473,7 @@ begin
   CheckPositivePrompt.Top := ContextInfoLabel.Top + ScaleY(30);
   CheckPositivePrompt.Width := ContextMenuPage.SurfaceWidth;
   CheckPositivePrompt.Caption := 'AI - Copy positive prompt';
-  CheckPositivePrompt.Checked := True;
+  CheckPositivePrompt.Checked := (not HasInstalledVersion) or ContextMenuKeyExists('.png', 'AI.1_CopyPositivePrompt') or ContextMenuKeyExists('.mp4', 'AI.1_CopyPositivePrompt');
 
   CheckNegativePrompt := TNewCheckBox.Create(ContextMenuPage);
   CheckNegativePrompt.Parent := ContextMenuPage.Surface;
@@ -226,7 +481,7 @@ begin
   CheckNegativePrompt.Top := CheckPositivePrompt.Top + ScaleY(24);
   CheckNegativePrompt.Width := ContextMenuPage.SurfaceWidth;
   CheckNegativePrompt.Caption := 'AI - Copy negative prompt';
-  CheckNegativePrompt.Checked := True;
+  CheckNegativePrompt.Checked := (not HasInstalledVersion) or ContextMenuKeyExists('.png', 'AI.2_CopyNegativePrompt') or ContextMenuKeyExists('.mp4', 'AI.2_CopyNegativePrompt');
 
   CheckAIInfo := TNewCheckBox.Create(ContextMenuPage);
   CheckAIInfo.Parent := ContextMenuPage.Surface;
@@ -234,7 +489,7 @@ begin
   CheckAIInfo.Top := CheckNegativePrompt.Top + ScaleY(24);
   CheckAIInfo.Width := ContextMenuPage.SurfaceWidth;
   CheckAIInfo.Caption := 'AI - AI Info';
-  CheckAIInfo.Checked := True;
+  CheckAIInfo.Checked := (not HasInstalledVersion) or ContextMenuKeyExists('.png', 'AI.3_ShowMetadataInfo') or ContextMenuKeyExists('.mp4', 'AI.3_ShowMetadataInfo');
 
   CheckExtractFrames := TNewCheckBox.Create(ContextMenuPage);
   CheckExtractFrames.Parent := ContextMenuPage.Surface;
@@ -242,7 +497,7 @@ begin
   CheckExtractFrames.Top := CheckAIInfo.Top + ScaleY(24);
   CheckExtractFrames.Width := ContextMenuPage.SurfaceWidth;
   CheckExtractFrames.Caption := 'AI - Extract Frames (MP4 only)';
-  CheckExtractFrames.Checked := True;
+  CheckExtractFrames.Checked := (not HasInstalledVersion) or ContextMenuKeyExists('.mp4', 'AI.4_ExtractFrames');
 
   FrameExtractionPage := CreateCustomPage(
     ContextMenuPage.ID,
@@ -326,6 +581,18 @@ function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   Result := False;
 
+  if PageID = MaintenancePage.ID then
+  begin
+    Result := not HasInstalledVersion;
+    exit;
+  end;
+
+  if HasInstalledVersion and (PageID = wpSelectDir) then
+  begin
+    Result := True;
+    exit;
+  end;
+
   if PageID = FrameExtractionPage.ID then
     Result := not ShouldInstallExtractFrames();
 end;
@@ -333,6 +600,21 @@ end;
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
+
+  if CurPageID = MaintenancePage.ID then
+  begin
+    if RadioMaintenanceUninstall.Checked then
+    begin
+      if LaunchExistingUninstaller() then
+      begin
+        SkipSetupExitConfirmation := True;
+        WizardForm.Close();
+      end;
+
+      Result := False;
+      exit;
+    end;
+  end;
 
   if CurPageID = FrameExtractionPage.ID then
   begin
@@ -342,6 +624,18 @@ begin
       Result := False;
     end;
   end;
+end;
+
+procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);
+begin
+  if SkipSetupExitConfirmation then
+    Confirm := False;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): string;
+begin
+  RemoveContextMenuEntries();
+  Result := '';
 end;
 
 procedure SaveFrameExtractionConfig();
