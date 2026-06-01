@@ -1,5 +1,13 @@
 # AI Metadata Inspector
 
+Official website: https://gaurox.dev/metadata-inspector/
+
+Website screenshots note: the `screenshots/` folder in this repository is the source of truth for both the README and the Gaurox website page. When screenshots change, sync this folder to `E:\AI\Gaurox_Website\metadata-inspector\screenshots` with the shared sync script in `E:\AI\sync-gaurox-website-screenshots.ps1`.
+
+## v1.3.1
+
+Maintenance and performance release — internal improvements, updated bundled components, and faster metadata window opening.
+
 ## v1.3.0
 
 - Faster right-click prompt copy path
@@ -124,7 +132,17 @@ https://github.com/Gaurox/AI-Metadata-Inspector/releases
 
 ## License
 
-MIT License  
+MIT License — see [LICENSE](LICENSE).
+
+This software bundles third-party components (FFmpeg, ExifTool, Python) that are governed by their own licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for details.
+
+---
+
+## Security
+
+To report a vulnerability, see [SECURITY.md](SECURITY.md).
+
+SHA-256 checksums for each release installer are published alongside the download on the [Releases page](https://github.com/Gaurox/AI-Metadata-Inspector/releases).
 
 ---
 
