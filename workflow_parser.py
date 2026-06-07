@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
-
-from prompt_extractors import looks_like_json
+from prompt_extractors import looks_like_json, safe_json_loads
 from workflow_extractors import collect_node_based_info, collect_prompt_info
 from workflow_seed import collect_sampler_details, collect_seed_info, pick_primary_sampler_detail
 
@@ -11,21 +9,21 @@ def find_json_data(found):
     for tag, value in found:
         if tag.lower() == "prompt" and looks_like_json(value):
             try:
-                return json.loads(value), tag
+                return safe_json_loads(value), tag
             except Exception:
                 pass
 
     for tag, value in found:
         if tag.lower() == "workflow" and looks_like_json(value):
             try:
-                return json.loads(value), tag
+                return safe_json_loads(value), tag
             except Exception:
                 pass
 
     for tag, value in found:
         if looks_like_json(value):
             try:
-                return json.loads(value), tag
+                return safe_json_loads(value), tag
             except Exception:
                 pass
 

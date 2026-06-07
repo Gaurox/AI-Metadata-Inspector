@@ -14,8 +14,8 @@ reg add "HKCR\SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt" /ve /d 
 reg add "HKCR\SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt" /v "Icon" /d "%APP_DIR%icons\negative.ico" /f
 reg add "HKCR\SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt\command" /ve /d "wscript.exe \"%APP_DIR%run_prompt_tool.vbs\" \"%1\" negative" /f
 
-reg add "HKCR\SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo" /ve /d "AI - Metadata Info" /f
-reg add "HKCR\SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo" /v "Icon" /d "%APP_DIR%icons\info.ico" /f
+reg add "HKCR\SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo" /ve /d "AI - Ai Info" /f
+reg add "HKCR\SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo" /v "Icon" /d "%APP_DIR%icons\app.ico" /f
 reg add "HKCR\SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo\command" /ve /d "wscript.exe \"%APP_DIR%run_prompt_tool.vbs\" \"%1\" info" /f
 
 :: ================= MP4 =================
@@ -28,8 +28,8 @@ reg add "HKCR\SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt" /ve /d 
 reg add "HKCR\SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt" /v "Icon" /d "%APP_DIR%icons\negative.ico" /f
 reg add "HKCR\SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt\command" /ve /d "wscript.exe \"%APP_DIR%run_prompt_tool.vbs\" \"%1\" negative" /f
 
-reg add "HKCR\SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo" /ve /d "AI - Metadata Info" /f
-reg add "HKCR\SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo" /v "Icon" /d "%APP_DIR%icons\info.ico" /f
+reg add "HKCR\SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo" /ve /d "AI - Ai Info" /f
+reg add "HKCR\SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo" /v "Icon" /d "%APP_DIR%icons\app.ico" /f
 reg add "HKCR\SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo\command" /ve /d "wscript.exe \"%APP_DIR%run_prompt_tool.vbs\" \"%1\" info" /f
 
 :: 🔥 NEW FEATURE

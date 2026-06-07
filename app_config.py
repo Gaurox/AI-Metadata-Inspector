@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from exif_reader import debug
+
+
+MAX_CONFIG_BYTES = 65_536
 
 
 DEFAULT_CONFIG = {
@@ -20,7 +24,18 @@ def get_app_dir() -> Path:
 
 
 def get_config_path() -> Path:
-    return get_app_dir() / "config.json"
+    # Store config in LOCALAPPDATA so it is user-writable even when the app
+    # is installed in Program Files.
+    try:
+        local_app_data = os.environ.get("LOCALAPPDATA") or str(
+            Path.home() / "AppData" / "Local"
+        )
+        config_dir = Path(local_app_data) / "AI Metadata Inspector"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        return config_dir / "config.json"
+    except Exception as e:
+        debug(f"CONFIG DIR UNAVAILABLE, FALLING BACK TO APP DIR: {e}")
+        return get_app_dir() / "config.json"
 
 
 def _normalize_mode(value) -> str:
@@ -49,6 +64,9 @@ def load_raw_config() -> dict:
         return dict(DEFAULT_CONFIG)
 
     try:
+        if config_path.stat().st_size > MAX_CONFIG_BYTES:
+            debug("CONFIG TOO LARGE, USING DEFAULTS")
+            return dict(DEFAULT_CONFIG)
         raw = json.loads(config_path.read_text(encoding="utf-8", errors="replace"))
         if not isinstance(raw, dict):
             debug("CONFIG INVALID ROOT TYPE, USING DEFAULTS")

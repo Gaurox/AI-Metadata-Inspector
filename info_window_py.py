@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from pathlib import Path
 from tkinter import ttk
 from typing import Any
 
@@ -235,7 +236,13 @@ def _is_clean_number(value: Any) -> bool:
 
 def show_info_window_py(payload: dict[str, Any]) -> bool:
     root = tk.Tk()
-    root.title("AI Metadata Inspector v1.3.0")
+    root.title("AI Metadata Inspector v1.3.2")
+    icon_path = Path(__file__).resolve().parent / "icons" / "app.ico"
+    if icon_path.exists():
+        try:
+            root.iconbitmap(str(icon_path))
+        except Exception:
+            pass
     screen_w = root.winfo_screenwidth()
     screen_h = root.winfo_screenheight()
     width = min(860, max(760, screen_w - 80))

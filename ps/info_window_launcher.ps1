@@ -9,6 +9,9 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+# Load WinForms before any MessageBox call
+Add-Type -AssemblyName System.Windows.Forms
+
 $helpersPath = Join-Path $AppDir "ps\info_window_helpers.ps1"
 $layoutPath  = Join-Path $AppDir "ps\info_window_layout.ps1"
 

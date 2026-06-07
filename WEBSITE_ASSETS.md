@@ -11,23 +11,23 @@ Do not maintain a separate edited screenshot set inside the website repo.
 
 Source:
 
-- `E:\AI\AI_Metadata_Inspector_V\screenshots`
+- `screenshots/` in this repository
 
 Website copy:
 
-- `E:\AI\Gaurox_Website\metadata-inspector\screenshots`
+- the `metadata-inspector/screenshots/` folder in your local Gaurox website workspace
 
 ## Sync method
 
-Run the shared manual sync script:
+Run the shared manual sync script from your local workspace:
 
-- `E:\AI\sync-gaurox-website-screenshots.ps1`
+- the screenshot sync script used by your Gaurox website checkout
 
 The script clears the website screenshot copy for AI Metadata Inspector and recopies it from this repository.
 
 ## Rule for agents
 
 - Update screenshots here first.
-- If you modify the AI Metadata Inspector website page or its screenshot usage, always run `E:\AI\sync-gaurox-website-screenshots.ps1` before finishing the task.
+- If you modify the AI Metadata Inspector website page or its screenshot usage, always run the shared screenshot sync script before finishing the task.
 - Then run the sync script.
-- Do not edit `E:\AI\Gaurox_Website\metadata-inspector\screenshots` by hand unless there is a one-off emergency fix.
+- Do not edit the website screenshot copy by hand unless there is a one-off emergency fix.

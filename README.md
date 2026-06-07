@@ -2,11 +2,17 @@
 
 Official website: https://gaurox.dev/metadata-inspector/
 
-Website screenshots note: the `screenshots/` folder in this repository is the source of truth for both the README and the Gaurox website page. When screenshots change, sync this folder to `E:\AI\Gaurox_Website\metadata-inspector\screenshots` with the shared sync script in `E:\AI\sync-gaurox-website-screenshots.ps1`.
+Website screenshots note: the `screenshots/` folder in this repository is the source of truth for both the README and the Gaurox website page. When screenshots change, sync this folder into the website repository with the shared screenshot sync script used by your local website workspace.
+
+## v1.3.2
+
+- New application icon integrated across the app window, installer, and `AI - Ai Info` Explorer entry
+- Safer frame extraction and hardening work before release
+- Updated bundled components and faster metadata window opening
 
 ## v1.3.1
 
-Maintenance and performance release — internal improvements, updated bundled components, and faster metadata window opening.
+- Maintenance and performance release — internal improvements, updated bundled components, and faster metadata window opening.
 
 ## v1.3.0
 
@@ -66,7 +72,7 @@ Multi-pass workflows are fully supported and clearly displayed:
 - Configurable output:
   - next to video
   - fixed folder
-- Smart cleanup (no folder spam)
+- Smart cleanup inside app-managed extraction folders
 - Cancel anytime via GUI
 
 ---

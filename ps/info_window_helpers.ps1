@@ -86,9 +86,8 @@ function Ensure-ShellThumbnailSupport {
     if ($script:ShellThumbnailReady) {
         return $true
     }
-
     try {
-        Add-Type -TypeDefinition $script:ThumbnailCode -ReferencedAssemblies System.Drawing | Out-Null
+        Add-Type -TypeDefinition $script:ThumbnailCode -ReferencedAssemblies System.Drawing -ErrorAction Stop | Out-Null
     } catch {
         if (-not ([System.Management.Automation.PSTypeName]'ShellThumbnail').Type) {
             return $false

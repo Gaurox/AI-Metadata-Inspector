@@ -1,18 +1,109 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import subprocess
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
-DEBUG_LOG = BASE_DIR / "prompt_tool_debug.log"
+
+_LOG_FILE = None
+APP_DATA_DIRNAME = "AI Metadata Inspector"
+DEBUG_LOG_ENV = "AI_METADATA_INSPECTOR_DEBUG"
+MAX_LOG_BYTES = 262_144
+MAX_METADATA_TEXT_CHARS = 2_000_000
+EXIFTOOL_TIMEOUT_SECONDS = 20
+PRIVATE_TEMP_MAX_AGE_SECONDS = 86_400
+
+
+def get_app_data_dir() -> Path:
+    local_app_data = os.environ.get("LOCALAPPDATA") or str(
+        Path.home() / "AppData" / "Local"
+    )
+    path = Path(local_app_data) / APP_DATA_DIRNAME
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def get_private_temp_dir() -> Path:
+    try:
+        temp_dir = get_app_data_dir() / "temp"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        return temp_dir
+    except Exception:
+        temp_dir = Path(tempfile.gettempdir()) / "AI_Metadata_Inspector"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        return temp_dir
+
+
+def cleanup_stale_temp_files(prefixes: tuple[str, ...], max_age_seconds: int = PRIVATE_TEMP_MAX_AGE_SECONDS) -> None:
+    now_ts = datetime.now().timestamp()
+    try:
+        temp_dir = get_private_temp_dir()
+    except Exception:
+        return
+
+    for path in temp_dir.iterdir():
+        try:
+            if not path.is_file():
+                continue
+            if not any(path.name.startswith(prefix) for prefix in prefixes):
+                continue
+            age_seconds = now_ts - path.stat().st_mtime
+            if age_seconds >= max_age_seconds:
+                path.unlink(missing_ok=True)
+        except Exception:
+            continue
+
+
+def _debug_enabled() -> bool:
+    return os.environ.get(DEBUG_LOG_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _redact_debug_message(msg: str) -> str:
+    text = str(msg or "")
+    text = re.sub(r"(?i)\b[A-Z]:\\[^ \r\n\t]+", "<path>", text)
+    text = re.sub(r"(?i)(argv=).*", r"\1<redacted>", text)
+    text = re.sub(r"(?i)(file=).*", r"\1<redacted>", text)
+    text = re.sub(r"(?i)(output folder=).*", r"\1<redacted>", text)
+    text = re.sub(r"(?i)(export txt=).*", r"\1<redacted>", text)
+    text = re.sub(r"(?i)(export json=).*", r"\1<redacted>", text)
+    if len(text) > 500:
+        text = text[:500] + "...(truncated)"
+    return text
+
+
+def _get_log_file() -> Path:
+    global _LOG_FILE
+    if _LOG_FILE is None:
+        try:
+            log_dir = get_app_data_dir() / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            _LOG_FILE = log_dir / "prompt_tool_debug.log"
+        except Exception:
+            _LOG_FILE = Path(tempfile.gettempdir()) / "ai_metadata_inspector_debug.log"
+    return _LOG_FILE
 
 
 def debug(msg: str) -> None:
+    if not _debug_enabled():
+        return
     try:
-        with DEBUG_LOG.open("a", encoding="utf-8", errors="replace") as f:
-            f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n")
+        log_file = _get_log_file()
+        if log_file.exists() and log_file.stat().st_size > MAX_LOG_BYTES:
+            backup = log_file.with_name("prompt_tool_debug.log.1")
+            try:
+                if backup.exists():
+                    backup.unlink()
+                log_file.rename(backup)
+            except Exception:
+                pass
+        with log_file.open("a", encoding="utf-8", errors="replace") as f:
+            safe_msg = _redact_debug_message(msg)
+            f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {safe_msg}\n")
     except Exception:
         pass
 
@@ -81,13 +172,13 @@ def _normalize_value(value) -> str:
         return ""
     if isinstance(value, list):
         parts = [str(item).strip() for item in value if str(item).strip()]
-        return "\n".join(parts).strip()
+        return "\n".join(parts).strip()[:MAX_METADATA_TEXT_CHARS]
     if isinstance(value, dict):
         try:
-            return json.dumps(value, ensure_ascii=False).strip()
+            return json.dumps(value, ensure_ascii=False).strip()[:MAX_METADATA_TEXT_CHARS]
         except Exception:
-            return str(value).strip()
-    return str(value).strip()
+            return str(value).strip()[:MAX_METADATA_TEXT_CHARS]
+    return str(value).strip()[:MAX_METADATA_TEXT_CHARS]
 
 
 def _run_exiftool_cmd(cmd: list[str]) -> tuple[dict[str, str], str]:
@@ -99,8 +190,11 @@ def _run_exiftool_cmd(cmd: list[str]) -> tuple[dict[str, str], str]:
             encoding="utf-8",
             errors="replace",
             check=False,
+            timeout=EXIFTOOL_TIMEOUT_SECONDS,
             **get_hidden_subprocess_kwargs(),
         )
+    except subprocess.TimeoutExpired:
+        return {}, "EXIFTOOL TIMEOUT"
     except Exception as e:
         return {}, f"EXCEPTION: {e}"
 
@@ -112,6 +206,10 @@ def _run_exiftool_cmd(cmd: list[str]) -> tuple[dict[str, str], str]:
 
     if not stdout:
         return {}, stderr
+
+    if len(stdout) > MAX_METADATA_TEXT_CHARS:
+        debug("EXIFTOOL STDOUT TOO LARGE")
+        return {}, "EXIFTOOL OUTPUT TOO LARGE"
 
     try:
         payload = json.loads(stdout)

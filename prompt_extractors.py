@@ -27,11 +27,20 @@ FAST_DIRECT_TEXT_TAGS = (
     "Subject",
     "XMP:Description",
 )
+MAX_JSON_TEXT_CHARS = 2_000_000
 
 
 def looks_like_json(text: str) -> bool:
     t = text.strip()
     return (t.startswith("{") and t.endswith("}")) or (t.startswith("[") and t.endswith("]"))
+
+
+def safe_json_loads(text: str):
+    if not isinstance(text, str):
+        raise ValueError("JSON input must be text")
+    if len(text) > MAX_JSON_TEXT_CHARS:
+        raise ValueError("JSON input too large")
+    return json.loads(text)
 
 
 def extract_a1111_positive(text: str):
@@ -303,7 +312,7 @@ def extract_comfy_prompt(text: str, mode="positive"):
     if not text or not looks_like_json(text):
         return None
 
-    data = json.loads(text)
+    data = safe_json_loads(text)
 
     val = extract_from_prompt_dict(data, mode=mode)
     if val is not None:

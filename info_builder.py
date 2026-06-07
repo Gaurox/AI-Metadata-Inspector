@@ -175,8 +175,8 @@ def _build_info_context(file_path, found, media=None):
     }
 
 
-def build_info_text(file_path, found, media=None):
-    ctx = _build_info_context(file_path, found, media=media)
+def build_info_text(file_path, found, media=None, _ctx=None):
+    ctx = _ctx if _ctx is not None else _build_info_context(file_path, found, media=media)
     path_obj = ctx["path_obj"]
     media = ctx["media"]
     comfy = ctx["comfy"]
@@ -332,6 +332,6 @@ def build_info_payload(file_path, found):
         "confidence": ctx["confidence"],
         "found_tags": "\n".join(ctx["metadata_sources_lines"]) if ctx["metadata_sources_lines"] else "No metadata source detected",
         "debug_info": ctx["debug_info"],
-        "copy_all": build_info_text(file_path, found, media=media),
+        "copy_all": build_info_text(file_path, found, media=media, _ctx=ctx),
     }
     return payload

@@ -1,5 +1,5 @@
 #define MyAppName "AI Metadata Inspector"
-#define MyAppVersion "1.3.0"
+#define MyAppVersion "1.3.2"
 #define MyAppPublisher "Gaurox"
 #define MyAppURL "https://github.com/Gaurox/AI-Metadata-Inspector"
 
@@ -25,14 +25,14 @@ WizardStyle=modern
 
 PrivilegesRequired=admin
 
-UninstallDisplayIcon={app}\icons\info.ico
-SetupIconFile=icons\info.ico
+UninstallDisplayIcon={app}\icons\app.ico
+SetupIconFile=icons\app.ico
 
 AllowNoIcons=yes
 UsePreviousAppDir=yes
 
-VersionInfoVersion=1.3.0.0
-VersionInfoTextVersion=1.3.0
+VersionInfoVersion=1.3.2.0
+VersionInfoTextVersion=1.3.2
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -40,6 +40,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Dirs]
 Name: "{app}\Context_Menu_Tools"
 Name: "{app}\ps"
+Name: "{localappdata}\AI Metadata Inspector"
 
 [Files]
 Source: "main.py"; DestDir: "{app}"; Flags: ignoreversion
@@ -78,6 +79,8 @@ Source: "screenshots\*"; DestDir: "{app}\screenshots"; Flags: ignoreversion recu
 
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "SECURITY.md"; DestDir: "{app}"; Flags: ignoreversion
 
 Source: "enable_old_context_menu.reg"; DestDir: "{app}\Context_Menu_Tools"; Flags: ignoreversion
 Source: "disable_old_context_menu.reg"; DestDir: "{app}\Context_Menu_Tools"; Flags: ignoreversion
@@ -90,6 +93,15 @@ Name: "{group}\Enable old context menu"; Filename: "{app}\Context_Menu_Tools\ena
 Name: "{group}\Disable old context menu"; Filename: "{app}\Context_Menu_Tools\disable_old_context_menu.reg"
 Name: "{group}\Uninstall AI Metadata Inspector"; Filename: "{uninstallexe}"
 
+[UninstallDelete]
+Type: files; Name: "{localappdata}\AI Metadata Inspector\config.json"
+Type: files; Name: "{localappdata}\AI Metadata Inspector\logs\prompt_tool_debug.log"
+Type: files; Name: "{localappdata}\AI Metadata Inspector\logs\prompt_tool_debug.log.1"
+Type: files; Name: "{localappdata}\AI Metadata Inspector\temp\*"
+Type: dirifempty; Name: "{localappdata}\AI Metadata Inspector\logs"
+Type: dirifempty; Name: "{localappdata}\AI Metadata Inspector\temp"
+Type: dirifempty; Name: "{localappdata}\AI Metadata Inspector"
+
 [Registry]
 Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.1_CopyPositivePrompt"; ValueType: string; ValueData: "AI - Copy positive prompt"; Flags: uninsdeletekey; Check: ShouldInstallPositivePrompt
 Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.1_CopyPositivePrompt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\positive.ico"; Flags: uninsdeletevalue; Check: ShouldInstallPositivePrompt
@@ -99,8 +111,8 @@ Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt";
 Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\negative.ico"; Flags: uninsdeletevalue; Check: ShouldInstallNegativePrompt
 Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" negative"; Flags: uninsdeletekey; Check: ShouldInstallNegativePrompt
 
-Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueData: "AI - AI Info"; Flags: uninsdeletekey; Check: ShouldInstallAIInfo
-Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\info.ico"; Flags: uninsdeletevalue; Check: ShouldInstallAIInfo
+Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueData: "AI - Ai Info"; Flags: uninsdeletekey; Check: ShouldInstallAIInfo
+Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\app.ico"; Flags: uninsdeletevalue; Check: ShouldInstallAIInfo
 Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" info"; Flags: uninsdeletekey; Check: ShouldInstallAIInfo
 
 Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.1_CopyPositivePrompt"; ValueType: string; ValueData: "AI - Copy positive prompt"; Flags: uninsdeletekey; Check: ShouldInstallPositivePrompt
@@ -111,8 +123,8 @@ Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt";
 Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\negative.ico"; Flags: uninsdeletevalue; Check: ShouldInstallNegativePrompt
 Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" negative"; Flags: uninsdeletekey; Check: ShouldInstallNegativePrompt
 
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueData: "AI - AI Info"; Flags: uninsdeletekey; Check: ShouldInstallAIInfo
-Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\info.ico"; Flags: uninsdeletevalue; Check: ShouldInstallAIInfo
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueData: "AI - Ai Info"; Flags: uninsdeletekey; Check: ShouldInstallAIInfo
+Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\icons\app.ico"; Flags: uninsdeletevalue; Check: ShouldInstallAIInfo
 Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo\command"; ValueType: string; ValueData: """wscript.exe"" ""{app}\run_prompt_tool.vbs"" ""%1"" info"; Flags: uninsdeletekey; Check: ShouldInstallAIInfo
 
 Root: HKCR; Subkey: "SystemFileAssociations\.mp4\shell\AI.4_ExtractFrames"; ValueType: string; ValueData: "AI - Extract Frames"; Flags: uninsdeletekey; Check: ShouldInstallExtractFrames
@@ -322,16 +334,29 @@ begin
   end;
 end;
 
+procedure DeleteOwnedContextMenuKey(const Subkey: string);
+var
+  CommandValue: string;
+begin
+  if RegQueryStringValue(HKCR, Subkey + '\command', '', CommandValue) then
+  begin
+    if Pos('run_prompt_tool.vbs', Lowercase(CommandValue)) > 0 then
+      RegDeleteKeyIncludingSubkeys(HKCR, Subkey);
+  end
+  else if RegKeyExists(HKCR, Subkey) then
+    RegDeleteKeyIncludingSubkeys(HKCR, Subkey);
+end;
+
 procedure RemoveContextMenuEntries();
 begin
-  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.png\shell\AI.1_CopyPositivePrompt');
-  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt');
-  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo');
+  DeleteOwnedContextMenuKey('SystemFileAssociations\.png\shell\AI.1_CopyPositivePrompt');
+  DeleteOwnedContextMenuKey('SystemFileAssociations\.png\shell\AI.2_CopyNegativePrompt');
+  DeleteOwnedContextMenuKey('SystemFileAssociations\.png\shell\AI.3_ShowMetadataInfo');
 
-  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.mp4\shell\AI.1_CopyPositivePrompt');
-  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt');
-  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo');
-  RegDeleteKeyIncludingSubkeys(HKCR, 'SystemFileAssociations\.mp4\shell\AI.4_ExtractFrames');
+  DeleteOwnedContextMenuKey('SystemFileAssociations\.mp4\shell\AI.1_CopyPositivePrompt');
+  DeleteOwnedContextMenuKey('SystemFileAssociations\.mp4\shell\AI.2_CopyNegativePrompt');
+  DeleteOwnedContextMenuKey('SystemFileAssociations\.mp4\shell\AI.3_ShowMetadataInfo');
+  DeleteOwnedContextMenuKey('SystemFileAssociations\.mp4\shell\AI.4_ExtractFrames');
 end;
 
 function LaunchExistingUninstaller(): Boolean;
@@ -488,7 +513,7 @@ begin
   CheckAIInfo.Left := ScaleX(0);
   CheckAIInfo.Top := CheckNegativePrompt.Top + ScaleY(24);
   CheckAIInfo.Width := ContextMenuPage.SurfaceWidth;
-  CheckAIInfo.Caption := 'AI - AI Info';
+  CheckAIInfo.Caption := 'AI - Ai Info';
   CheckAIInfo.Checked := (not HasInstalledVersion) or ContextMenuKeyExists('.png', 'AI.3_ShowMetadataInfo') or ContextMenuKeyExists('.mp4', 'AI.3_ShowMetadataInfo');
 
   CheckExtractFrames := TNewCheckBox.Create(ContextMenuPage);
@@ -572,7 +597,7 @@ begin
   RadioFixedFolderShared.Left := ScaleX(20);
   RadioFixedFolderShared.Top := RadioFixedFolderSubfolder.Top + ScaleY(24);
   RadioFixedFolderShared.Width := FixedFolderBehaviorPanel.Width - ScaleX(20);
-  RadioFixedFolderShared.Caption := 'Use the fixed folder directly and replace previous extraction';
+  RadioFixedFolderShared.Caption := 'Use one app-managed shared subfolder inside the fixed folder';
 
   UpdateFrameExtractionControls();
 end;
@@ -666,7 +691,7 @@ begin
     BehaviorValue := 'subfolder_per_video';
   end;
 
-  ConfigPath := ExpandConstant('{app}\config.json');
+  ConfigPath := ExpandConstant('{localappdata}\AI Metadata Inspector\config.json');
 
   ConfigContent :=
     '{'#13#10 +

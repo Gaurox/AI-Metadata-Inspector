@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -56,6 +58,7 @@ def copy_to_clipboard(text: str) -> bool:
             encoding="utf-8",
             errors="replace",
             check=False,
+            timeout=5,
             **get_hidden_subprocess_kwargs(),
         )
         debug(f"clip.exe returncode={result.returncode} len={len(text)}")
@@ -69,6 +72,7 @@ def copy_to_clipboard(text: str) -> bool:
             [
                 "powershell.exe",
                 "-NoProfile",
+                "-NonInteractive",
                 "-ExecutionPolicy",
                 "Bypass",
                 "-Command",
@@ -79,6 +83,7 @@ def copy_to_clipboard(text: str) -> bool:
             encoding="utf-8",
             errors="replace",
             check=False,
+            timeout=5,
             **get_hidden_subprocess_kwargs(),
         )
         debug(f"powershell clipboard returncode={ps.returncode} len={len(text)}")
@@ -88,18 +93,37 @@ def copy_to_clipboard(text: str) -> bool:
         return False
 
 
+def _atomic_write_text(out_file: Path, content: str) -> None:
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp_path_str = tempfile.mkstemp(
+        prefix="ai_meta_export_",
+        suffix=out_file.suffix,
+        dir=out_file.parent,
+    )
+    temp_path = Path(temp_path_str)
+    try:
+        os.close(fd)
+        temp_path.write_text(content, encoding="utf-8", errors="replace")
+        os.replace(temp_path, out_file)
+    finally:
+        try:
+            temp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
 def export_payload(file_path: str, payload: dict, mode: str) -> int:
     out_path = Path(file_path)
 
     if mode in ("debug", "export_txt"):
         out_file = out_path.with_suffix(".ai_info.txt")
-        out_file.write_text(payload.get("copy_all", ""), encoding="utf-8", errors="replace")
+        _atomic_write_text(out_file, payload.get("copy_all", ""))
         debug(f"EXPORT TXT={out_file}")
         return 0
 
     if mode == "export_json":
         out_file = out_path.with_suffix(".ai_info.json")
-        out_file.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8", errors="replace")
+        _atomic_write_text(out_file, json.dumps(payload, indent=2, ensure_ascii=False))
         debug(f"EXPORT JSON={out_file}")
         return 0
 
@@ -150,7 +174,7 @@ def main():
     debug(f"EXIFTOOL={EXIFTOOL}")
 
     if mode == "extract_frames":
-        if not Path(file_path).exists():
+        if not Path(file_path).is_file():
             debug("EXIT 3: target file missing")
             sys.exit(3)
 
@@ -163,7 +187,7 @@ def main():
         debug("EXIT 2: exiftool missing")
         sys.exit(2)
 
-    if not Path(file_path).exists():
+    if not Path(file_path).is_file():
         debug("EXIT 3: target file missing")
         sys.exit(3)
 

@@ -1,15 +1,26 @@
 from __future__ import annotations
 
 import math
+import os
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
-from exif_reader import collect_media_info, debug
+from exif_reader import (
+    cleanup_stale_temp_files,
+    collect_media_info,
+    debug,
+    get_private_temp_dir,
+)
 
 
 FRAME_PATTERN = "frame_%06d.png"
 CANCEL_EXIT_CODE = 1223
+MANAGED_SHARED_FOLDER_NAME = "_ai_metadata_inspector_shared_frames"
+EXTRACTION_LOCK_FILE = ".ai_metadata_inspector.lock"
+LOCK_STALE_AFTER_SECONDS = 21_600
+FFMPEG_WAIT_TIMEOUT_SECONDS = 86_400
 
 
 def get_hidden_subprocess_kwargs():
@@ -39,11 +50,57 @@ def safe_mkdir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
+def _lock_file_path(folder: Path) -> Path:
+    return folder / EXTRACTION_LOCK_FILE
+
+
+def _is_stale_lock(lock_path: Path) -> bool:
+    try:
+        age_seconds = max(0.0, time.time() - lock_path.stat().st_mtime)
+        return age_seconds >= LOCK_STALE_AFTER_SECONDS
+    except Exception:
+        return False
+
+
+def acquire_output_lock(folder: Path) -> tuple[int, Path] | tuple[None, None]:
+    lock_path = _lock_file_path(folder)
+
+    if lock_path.exists() and _is_stale_lock(lock_path):
+        try:
+            lock_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+    try:
+        fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_RDWR)
+        os.write(fd, str(os.getpid()).encode("ascii", errors="ignore"))
+        return fd, lock_path
+    except FileExistsError:
+        debug(f"EXTRACTION LOCK EXISTS: {lock_path}")
+        return None, None
+
+
+def release_output_lock(lock_handle: int | None, lock_path: Path | None) -> None:
+    if lock_handle is not None:
+        try:
+            os.close(lock_handle)
+        except Exception:
+            pass
+    if lock_path is not None:
+        try:
+            lock_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
 def clean_existing_frames(folder: Path) -> None:
     if not folder.exists():
         return
 
-    for file in folder.glob("frame_*.png"):
+    frames = list(folder.glob("frame_*.png"))
+    if frames:
+        debug(f"CLEANING {len(frames)} EXISTING FRAME(S) IN {folder}")
+    for file in frames:
         try:
             file.unlink()
         except Exception as e:
@@ -61,11 +118,14 @@ def build_output_folder(
 
     if mode == "fixed_folder" and fixed_dir:
         behavior = str(fixed_folder_behavior or "").strip().lower()
+        fixed_base = Path(fixed_dir)
 
         if behavior == "single_shared_folder":
-            return Path(fixed_dir)
+            # Never clean a user-selected folder directly. Shared mode always
+            # uses one managed child folder dedicated to this application.
+            return fixed_base / MANAGED_SHARED_FOLDER_NAME
 
-        return Path(fixed_dir) / folder_name
+        return fixed_base / folder_name
 
     return file_path.parent / folder_name
 
@@ -151,6 +211,10 @@ def launch_ffmpeg(input_file: Path, output_folder: Path) -> subprocess.Popen:
 
     cmd = [
         str(ffmpeg_path),
+        "-nostdin",
+        "-protocol_whitelist",
+        "file,pipe,data",
+        "-y",
         "-i",
         str(input_file),
         "-fps_mode",
@@ -180,9 +244,8 @@ def run_progress_window(
         debug(f"WINDOW SCRIPT NOT FOUND: {script_path}")
         return 6
 
-    tmp_dir = Path(tempfile.gettempdir())
-    launcher_path = tmp_dir / "ai_metadata_inspector_frame_extract_launcher.ps1"
-    log_path = tmp_dir / "ai_metadata_inspector_frame_extract_gui_debug.log"
+    cleanup_stale_temp_files(("ai_meta_launcher_",))
+    tmp_dir = get_private_temp_dir()
 
     launcher_script = r'''
 param(
@@ -210,66 +273,74 @@ if (-not (Test-Path -LiteralPath $ScriptPath)) {
 exit $LASTEXITCODE
 '''.strip()
 
-    try:
-        launcher_path.write_text(
-            launcher_script,
-            encoding="utf-8",
-            errors="replace",
-        )
-    except Exception as e:
-        debug(f"FAILED TO WRITE FRAME WINDOW LAUNCHER: {e}")
-        return 6
-
-    cmd = [
-        "powershell.exe",
-        "-NoProfile",
-        "-STA",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        str(launcher_path),
-        "-ScriptPath",
-        str(script_path),
-        "-VideoPath",
-        str(video_path),
-        "-OutputFolder",
-        str(output_folder),
-        "-FfmpegProcessId",
-        str(ffmpeg_pid),
-        "-ExpectedFrameCount",
-        str(expected_frame_count),
-    ]
-
-    debug(f"WINDOW CMD: {' '.join(cmd)}")
+    # Use a randomly-named temp file to avoid collisions and path prediction
+    fd, launcher_path_str = tempfile.mkstemp(
+        prefix="ai_meta_launcher_", suffix=".ps1", dir=tmp_dir
+    )
+    launcher_path = Path(launcher_path_str)
 
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
-    except Exception as e:
-        debug(f"WINDOW LAUNCH ERROR: {e}")
-        return 6
+        try:
+            os.close(fd)
+            launcher_path.write_text(
+                launcher_script,
+                encoding="utf-8",
+                errors="replace",
+            )
+        except Exception as e:
+            debug(f"FAILED TO WRITE FRAME WINDOW LAUNCHER: {e}")
+            return 6
 
-    try:
-        log_path.write_text(
-            "STDOUT:\n"
-            + (result.stdout or "")
-            + "\n\nSTDERR:\n"
-            + (result.stderr or "")
-            + f"\n\nRETURN CODE: {result.returncode}\n",
-            encoding="utf-8",
-            errors="replace",
-        )
-    except Exception as e:
-        debug(f"FAILED TO WRITE FRAME WINDOW LOG: {e}")
+        cmd = [
+            "powershell.exe",
+            "-NoProfile",
+            "-STA",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(launcher_path),
+            "-ScriptPath",
+            str(script_path),
+            "-VideoPath",
+            str(video_path),
+            "-OutputFolder",
+            str(output_folder),
+            "-FfmpegProcessId",
+            str(ffmpeg_pid),
+            "-ExpectedFrameCount",
+            str(expected_frame_count),
+        ]
 
-    debug(f"WINDOW RETURN CODE={result.returncode} LOG={log_path}")
-    return result.returncode
+        debug(f"WINDOW CMD (launcher={launcher_path.name}): {' '.join(cmd[:-10])}")
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=False,
+                **get_hidden_subprocess_kwargs(),
+            )
+        except Exception as e:
+            debug(f"WINDOW LAUNCH ERROR: {e}")
+            return 6
+
+        stdout = (result.stdout or "").strip()
+        stderr = (result.stderr or "").strip()
+        if stdout:
+            debug(f"WINDOW STDOUT: {stdout[:500]}")
+        if stderr:
+            debug(f"WINDOW STDERR: {stderr[:500]}")
+        debug(f"WINDOW RETURN CODE={result.returncode}")
+        return result.returncode
+
+    finally:
+        try:
+            launcher_path.unlink(missing_ok=True)
+        except Exception:
+            pass
 
 
 def terminate_process_if_needed(process: subprocess.Popen | None) -> None:
@@ -307,6 +378,9 @@ def run_ffmpeg_with_cancel_ui(input_file: Path, output_folder: Path) -> int:
         return 6
 
     safe_mkdir(output_folder)
+    lock_handle, lock_path = acquire_output_lock(output_folder)
+    if lock_handle is None:
+        return 8
     clean_existing_frames(output_folder)
 
     ffmpeg_process: subprocess.Popen | None = None
@@ -335,7 +409,14 @@ def run_ffmpeg_with_cancel_ui(input_file: Path, output_folder: Path) -> int:
             return CANCEL_EXIT_CODE
 
         if ffmpeg_code is None:
-            ffmpeg_code = wait_process_safely(ffmpeg_process)
+            ffmpeg_code = wait_process_safely(
+                ffmpeg_process,
+                timeout=FFMPEG_WAIT_TIMEOUT_SECONDS,
+            )
+            if ffmpeg_code == -1:
+                terminate_process_if_needed(ffmpeg_process)
+                clean_existing_frames(output_folder)
+                return 4
 
         debug(f"FFMPEG FINAL RETURN CODE={ffmpeg_code}")
 
@@ -359,13 +440,15 @@ def run_ffmpeg_with_cancel_ui(input_file: Path, output_folder: Path) -> int:
         terminate_process_if_needed(ffmpeg_process)
         clean_existing_frames(output_folder)
         return 5
+    finally:
+        release_output_lock(lock_handle, lock_path)
 
 
 def extract_frames(file_path: str, config: dict) -> int:
     try:
         input_file = Path(file_path)
 
-        if not input_file.exists():
+        if not input_file.is_file():
             debug(f"INPUT FILE NOT FOUND: {input_file}")
             return 1
 

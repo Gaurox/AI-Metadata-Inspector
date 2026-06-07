@@ -102,13 +102,13 @@ function Show-AIInfoWindow {
 
     $form = New-Object System.Windows.Forms.Form
 
-    $iconPath = Join-Path $AppDir "icons\info.ico"
+    $iconPath = Join-Path $AppDir "icons\app.ico"
     if (Test-Path -LiteralPath $iconPath) {
        $form.Icon = New-Object System.Drawing.Icon($iconPath)
        $form.ShowIcon = $true
     }
 
-    $APP_VERSION = "1.3.0"
+    $APP_VERSION = "1.3.1"
     $form.Text = "AI Metadata Inspector v$APP_VERSION"
     $form.StartPosition = "CenterScreen"
     $screenArea = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
