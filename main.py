@@ -5,6 +5,8 @@ import os
 import subprocess
 import sys
 import tempfile
+import traceback
+from datetime import datetime
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -45,6 +47,53 @@ def get_hidden_subprocess_kwargs():
     if hasattr(subprocess, "CREATE_NO_WINDOW"):
         kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
     return kwargs
+
+
+
+def _diagnostic_log_path() -> Path:
+    try:
+        local_app_data = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+        log_dir = Path(local_app_data) / "AI Metadata Inspector" / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        return log_dir / "ai_info_error.log"
+    except Exception:
+        return Path(tempfile.gettempdir()) / "ai_info_error.log"
+
+
+def _write_diagnostic(message: str) -> None:
+    try:
+        path = _diagnostic_log_path()
+        with path.open("a", encoding="utf-8", errors="replace") as f:
+            f.write("\n" + "=" * 72 + "\n")
+            f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
+            f.write(str(message) + "\n")
+    except Exception:
+        pass
+
+
+def _show_visible_error(title: str, message: str) -> None:
+    full_message = str(message)
+    try:
+        # Keep the dialog reasonably readable.
+        if len(full_message) > 3500:
+            full_message = full_message[:3500] + "\n...(truncated)"
+        ps_script = (
+            "Add-Type -AssemblyName System.Windows.Forms; "
+            "[System.Windows.Forms.MessageBox]::Show($args[0], $args[1], "
+            "[System.Windows.Forms.MessageBoxButtons]::OK, "
+            "[System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null"
+        )
+        subprocess.run(
+            ["powershell.exe", "-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-Command", ps_script, full_message, title],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=20,
+            **get_hidden_subprocess_kwargs(),
+        )
+    except Exception:
+        pass
 
 
 def copy_to_clipboard(text: str) -> bool:
@@ -202,10 +251,40 @@ def main():
         debug("FOUND_TAGS=" + ", ".join(tag for tag, _ in found))
 
     if mode == "info":
-        payload = build_info_payload(file_path, found)
-        if show_info_window(payload):
+        _write_diagnostic("INFO MODE REACHED\nfile=" + str(file_path) + "\nfound_tags=" + str(len(found)))
+        try:
+            payload = build_info_payload(file_path, found)
+            _write_diagnostic("PAYLOAD BUILT OK\nkeys=" + ", ".join(sorted(payload.keys())))
+        except Exception:
+            err = traceback.format_exc()
+            _write_diagnostic("PAYLOAD BUILD FAILED\n" + err)
+            _show_visible_error(
+                "AI Metadata Inspector - AI Info error",
+                "AI Info failed while building metadata payload.\n\n" + err + "\nLog: " + str(_diagnostic_log_path()),
+            )
+            sys.exit(70)
+
+        try:
+            opened = show_info_window(payload)
+        except Exception:
+            err = traceback.format_exc()
+            _write_diagnostic("WINDOW OPEN CRASHED\n" + err)
+            _show_visible_error(
+                "AI Metadata Inspector - AI Info error",
+                "AI Info crashed while opening the window.\n\n" + err + "\nLog: " + str(_diagnostic_log_path()),
+            )
+            sys.exit(71)
+
+        if opened:
+            _write_diagnostic("WINDOW OPENED OK")
             debug("EXIT 0: info window opened")
             sys.exit(0)
+
+        _write_diagnostic("show_info_window returned False")
+        _show_visible_error(
+            "AI Metadata Inspector - AI Info error",
+            "AI Info did not open. show_info_window() returned False.\n\nLog: " + str(_diagnostic_log_path()),
+        )
         debug("EXIT 7: info window failed")
         sys.exit(7)
 
