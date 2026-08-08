@@ -1,5 +1,5 @@
 #define MyAppName "AI Metadata Inspector"
-#define MyAppVersion "1.3.3"
+#define MyAppVersion "1.4.0"
 #define MyAppPublisher "Gaurox"
 #define MyAppURL "https://github.com/Gaurox/AI-Metadata-Inspector"
 
@@ -31,8 +31,8 @@ SetupIconFile=icons\app.ico
 AllowNoIcons=yes
 UsePreviousAppDir=yes
 
-VersionInfoVersion=1.3.3.0
-VersionInfoTextVersion=1.3.3
+VersionInfoVersion=1.4.0.0
+VersionInfoTextVersion=1.4.0
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

@@ -6,19 +6,20 @@ Update this file in the same change set as every future audit-related fix.
 Allowed statuses: `TODO`, `IN PROGRESS`, `DONE`, `DONE WITH RESERVATION`,
 `DEFERRED`, `NOT APPLICABLE`.
 
-Current scope: **Phase A — rapid security hardening closed; v1.3.3 prepared
+Current scope: **Phase A — rapid security hardening closed; v1.4.0 prepared
 locally**. No tag or remote publication was created. No GUI redesign, parser
 refactor or frame-lifecycle redesign was performed.
 
-## Phase A closure / v1.3.3 local preparation
+## Phase A closure / v1.4.0 local preparation
 
 - Inno Setup 6.7.1 was found outside `PATH` and compiled the installer
-  successfully. The resulting setup reports file/product version `1.3.3`.
+  successfully. The resulting setup reports file/product version `1.4.0`.
 - The release manifest and checksum were regenerated from that setup. The
-  manifest deliberately records `source_tree_dirty: true`: this local build is
-  not yet tied to a final clean commit or immutable tag.
-- Python compilation, embedded ExifTool, PNG prompt extraction, AI Info payload,
-  FFmpeg 8.1.2 and MP4-to-PNG extraction were revalidated locally. Console
+  manifest records a clean exact local commit. This build is not yet tied to an
+  immutable tag or remote publication.
+- Python compilation, embedded ExifTool, PNG prompt extraction (including a
+  MiniMax fixture), AI Info payload, FFmpeg 8.1.2 and MP4-to-PNG extraction
+  were revalidated locally. Console
   suppression received static validation; no Explorer interactive visual test
   was run.
 - The validation residue directories `.ffmpeg_update_8_1_2`,
@@ -44,10 +45,10 @@ refactor or frame-lifecycle redesign was performed.
 |---|---|---|---|---|---|---|
 | 0 | REL-01 | Tag/release v1.3.2 non reproductible | HAUTE | DEFERRED | Publier une version future depuis un commit/tag immuable exact. | Aucun état Git/release distant modifié. |
 | 0 | REL-02 | Absence de corpus et de gate automatisé | HAUTE | DEFERRED | Construire les fixtures et le gate avant les refactors. | Aucun test projet existant trouvé. |
-| A / 0 | REL-03 | Traçabilité supply-chain/release | MOYENNE | DONE WITH RESERVATION | Authenticode, SBOM, CI, commit/tag propre et publication vérifiée restent à faire. | Setup v1.3.3 compilé; checksum et manifest régénérés; hash setup/sidecar/manifest concordants. |
+| A / 0 | REL-03 | Traçabilité supply-chain/release | MOYENNE | DONE WITH RESERVATION | Authenticode, SBOM, CI, tag immuable et publication vérifiée restent à faire. | Setup v1.4.0 compilé depuis un commit local propre; checksum et manifest régénérés; hash setup/sidecar/manifest concordants. |
 | A / 1 | SEC-01 | Texte variable dans `powershell.exe -Command` pour les dialogues | HAUTE | DONE WITH RESERVATION | Validation interactive de MessageBoxW (session Explorer) à faire sur Windows 10/11. | Les deux helpers appellent `MessageBoxW`; inspection ciblée confirme l'absence de subprocess dans ces helpers; build Inno réussi. |
 | 1 | SEC-02 | Limite ExifTool après allocation | HAUTE | DEFERRED | Lecture bornée concurrente stdout/stderr et kill/reap. | Non traité, par périmètre. |
-| A / 1 | DEP-01 | FFmpeg antérieur aux correctifs 8.1.2 | HAUTE | DONE WITH RESERVATION | Corpus codecs CFR/VFR/corrompu et progression/Cancel réels restent à rejouer. | Archive Gyan SHA-256 vérifiée; `ffmpeg.exe` SHA-256 vérifié; version 8.1.2; extraction MP4 de validation par `frame_extractor.launch_ffmpeg()` en 2 PNG; setup v1.3.3 compilé. |
+| A / 1 | DEP-01 | FFmpeg antérieur aux correctifs 8.1.2 | HAUTE | DONE WITH RESERVATION | Corpus codecs CFR/VFR/corrompu et progression/Cancel réels restent à rejouer. | Archive Gyan SHA-256 vérifiée; `ffmpeg.exe` SHA-256 vérifié; version 8.1.2; extraction MP4 de validation par `frame_extractor.launch_ffmpeg()` en 2 PNG; setup v1.4.0 compilé. |
 | A | SEC-03 | Config ExifTool, fin d'options, chemins système et CWD | MOYENNE | DONE | Les temporaires réouverts et autres durcissements conditionnels restent hors Phase A. | Commande contrôlée: `-config ""` avant options, `--` avant média; ExifTool réel sur PNG; chemins System32 et CWD vérifiés par test ciblé; build Inno réussi. |
 | 1 / 3 | PAR-01 | `inputs` ComfyUI liste/dict | HAUTE | DEFERRED | Normaliser les représentations avec fixtures. | Non traité, par périmètre. |
 | 3 | PAR-02 | Liens/UI/reroutes/workflow moderne | HAUTE | DEFERRED | GraphContext et résolveur borné. | Non traité, par périmètre. |

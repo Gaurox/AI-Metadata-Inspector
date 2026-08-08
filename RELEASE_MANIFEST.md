@@ -1,21 +1,21 @@
-# Release traceability — v1.3.3
+# Release traceability — v1.4.0
 
-This document records the component baseline for the local **v1.3.3** Security
-& Hardening release preparation and the minimum release evidence required for
+This document records the component baseline for the local **v1.4.0**
+Compatibility & Reliability release preparation and the minimum release evidence required for
 every future release. It supplements, but does not replace, the third-party
 license notices. No tag or remote publication is created by this workflow.
 
-## Local v1.3.3 build artifact
+## Local v1.4.0 build artifact
 
 | Field | Value |
 |---|---|
 | Setup | `Output/AI_Metadata_Inspector_Setup.exe` |
-| Setup SHA-256 | `5091c09677ed7f72114f8d2a8c032aaaf0e339f7d4d69087c7ebfa85b09fea58` |
-| Setup file/product version | `1.3.3` |
+| Setup SHA-256 | Recorded in `Output/AI_Metadata_Inspector_Setup.exe.sha256` and the generated JSON manifest. |
+| Setup file/product version | `1.4.0` |
 | Machine-readable manifest | `Output/AI_Metadata_Inspector_release_manifest.json` |
 | Checksum sidecar | `Output/AI_Metadata_Inspector_Setup.exe.sha256` |
-| Source commit recorded | `589438705873e5e3e42e445ebf1a2f037e66b956` |
-| Source tree status | Dirty: local release preparation has not yet been committed/tagged. |
+| Source commit recorded | `source_commit` in the generated JSON manifest. |
+| Source tree status | Must be clean; no tag or remote publication is created by this workflow. |
 
 The generated JSON manifest and `.sha256` sidecar were checked against this
 exact setup binary. Regenerate all three files after any packaged-input change.
