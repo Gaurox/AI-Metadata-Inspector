@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import sys
 import tempfile
 import traceback
@@ -25,7 +24,7 @@ from frame_extractor import extract_frames
 from info_builder import build_info_payload
 from info_window import show_info_window
 from prompt_extractors import extract_prompt_data, extract_prompt_data_fast
-from windows_runtime import get_system_executable, show_error_message
+from windows_runtime import copy_unicode_text_to_clipboard, show_error_message
 
 
 VALID_MODES = (
@@ -37,18 +36,6 @@ VALID_MODES = (
     "export_json",
     "extract_frames",
 )
-
-
-def get_hidden_subprocess_kwargs():
-    kwargs = {}
-    if hasattr(subprocess, "STARTUPINFO"):
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        kwargs["startupinfo"] = startupinfo
-    if hasattr(subprocess, "CREATE_NO_WINDOW"):
-        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
-    return kwargs
-
 
 
 def _diagnostic_log_path() -> Path:
@@ -82,51 +69,10 @@ def _show_visible_error(title: str, message: str) -> None:
 
 
 def copy_to_clipboard(text: str) -> bool:
-    text = "" if text is None else str(text)
-
-    try:
-        result = subprocess.run(
-            [get_system_executable("clip.exe")],
-            input=text,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-            timeout=5,
-            cwd=str(BASE_DIR),
-            **get_hidden_subprocess_kwargs(),
-        )
-        debug(f"clip.exe returncode={result.returncode} len={len(text)}")
-        if result.returncode == 0:
-            return True
-    except Exception as e:
-        debug(f"clip.exe exception: {e}")
-
-    try:
-        ps = subprocess.run(
-            [
-                get_system_executable("WindowsPowerShell\\v1.0\\powershell.exe"),
-                "-NoProfile",
-                "-NonInteractive",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-Command",
-                "Set-Clipboard -Value ([Console]::In.ReadToEnd())",
-            ],
-            input=text,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-            timeout=5,
-            cwd=str(BASE_DIR),
-            **get_hidden_subprocess_kwargs(),
-        )
-        debug(f"powershell clipboard returncode={ps.returncode} len={len(text)}")
-        return ps.returncode == 0
-    except Exception as e:
-        debug(f"powershell clipboard exception: {e}")
-        return False
+    value = "" if text is None else str(text)
+    copied = copy_unicode_text_to_clipboard(value)
+    debug(f"unicode clipboard copied={copied} len={len(value)}")
+    return copied
 
 
 def _atomic_write_text(out_file: Path, content: str) -> None:
