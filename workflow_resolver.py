@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import ast
+import math
+
 
 def _build_prompt_dict_index(data):
     if not isinstance(data, dict):
@@ -35,26 +38,87 @@ def _build_workflow_links_by_id(data):
     return out
 
 
-def _resolve_math_expression(expr, a=None, b=None, c=None):
+def _resolve_math_expression(expr, a=None, b=None, c=None, variables=None):
     if not isinstance(expr, str):
         return None
 
-    e = expr.strip().lower()
-    if e == "a":
-        return a
-    if e == "b":
-        return b
-    if e == "c":
-        return c
-    if e == "a/2" and isinstance(a, (int, float)):
-        return int(a / 2)
-    if e == "a*2" and isinstance(a, (int, float)):
-        return a * 2
-    if e == "a+1" and isinstance(a, (int, float)):
-        return a + 1
-    if e == "a-1" and isinstance(a, (int, float)):
-        return a - 1
-    return None
+    expression = expr.strip()
+    if not expression or len(expression) > 512:
+        return None
+
+    values = {"a": a, "b": b, "c": c}
+    if isinstance(variables, dict):
+        values.update(variables)
+
+    allowed_binary = {
+        ast.Add: lambda left, right: left + right,
+        ast.Sub: lambda left, right: left - right,
+        ast.Mult: lambda left, right: left * right,
+        ast.Div: lambda left, right: left / right,
+        ast.FloorDiv: lambda left, right: left // right,
+        ast.Mod: lambda left, right: left % right,
+    }
+    allowed_unary = {
+        ast.UAdd: lambda value: +value,
+        ast.USub: lambda value: -value,
+    }
+    allowed_calls = {
+        "abs": abs,
+        "ceil": math.ceil,
+        "floor": math.floor,
+        "max": max,
+        "min": min,
+        "round": round,
+    }
+
+    def evaluate(node, depth=0):
+        if depth > 32:
+            raise ValueError("expression too deep")
+
+        if isinstance(node, ast.Expression):
+            return evaluate(node.body, depth + 1)
+
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, bool):
+                return node.value
+            if isinstance(node.value, (int, float)):
+                return node.value
+            raise ValueError("unsupported constant")
+
+        if isinstance(node, ast.Name):
+            value = values.get(node.id)
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, (int, float)):
+                return value
+            raise ValueError("unknown variable")
+
+        if isinstance(node, ast.BinOp) and type(node.op) in allowed_binary:
+            left = evaluate(node.left, depth + 1)
+            right = evaluate(node.right, depth + 1)
+            return allowed_binary[type(node.op)](left, right)
+
+        if isinstance(node, ast.UnaryOp) and type(node.op) in allowed_unary:
+            return allowed_unary[type(node.op)](evaluate(node.operand, depth + 1))
+
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            func = allowed_calls.get(node.func.id)
+            if func is None or node.keywords or len(node.args) > 8:
+                raise ValueError("unsupported call")
+            return func(*(evaluate(arg, depth + 1) for arg in node.args))
+
+        raise ValueError("unsupported expression")
+
+    try:
+        parsed = ast.parse(expression, mode="eval")
+        result = evaluate(parsed)
+        if isinstance(result, float) and not math.isfinite(result):
+            return None
+        if isinstance(result, (int, float)) and abs(result) > 10**15:
+            return None
+        return result
+    except (ArithmeticError, SyntaxError, TypeError, ValueError):
+        return None
 
 
 _RESOLUTION_CACHE: dict[tuple[int, str, str], object] = {}
@@ -73,10 +137,118 @@ def _cache_set(data, kind: str, ref, value):
     return value
 
 
-def _resolve_prompt_dict_ref(data, ref):
+def _workflow_link_by_id(data, link_id):
+    links_by_id = _build_workflow_links_by_id(data)
+    if link_id in links_by_id:
+        return links_by_id[link_id]
+
+    wanted = str(link_id)
+    for candidate_id, link in links_by_id.items():
+        if str(candidate_id) == wanted:
+            return link
+    return None
+
+
+def _resolve_reference_source(data, ref):
+    """Return the source node and output slot without coercing its output."""
+    if not isinstance(data, dict):
+        return None, None
+
+    if "nodes" not in data:
+        if not isinstance(ref, list) or not ref:
+            return None, None
+        node = _build_prompt_dict_index(data).get(str(ref[0]))
+        slot = ref[1] if len(ref) > 1 else 0
+        return node, slot
+
+    nodes_by_id = _build_workflow_index(data)
+
+    if isinstance(ref, list) and ref:
+        return nodes_by_id.get(str(ref[0])), ref[1] if len(ref) > 1 else 0
+
+    link = _workflow_link_by_id(data, ref)
+    if not isinstance(link, dict):
+        return None, None
+
+    origin_id = link.get("origin_id")
+    if origin_id is None:
+        return None, None
+    origin_slot = link.get("origin_slot", 0)
+    return nodes_by_id.get(str(origin_id)), origin_slot
+
+
+def _resolve_input_source(data, node, input_name):
+    """Resolve a named node input to its upstream node, preserving object outputs."""
+    if not isinstance(node, dict):
+        return None, None
+
+    inputs = node.get("inputs", {}) or {}
+    if isinstance(inputs, dict):
+        return _resolve_reference_source(data, inputs.get(input_name))
+
+    if isinstance(inputs, list):
+        wanted = str(input_name).strip().lower()
+        for item in inputs:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name", "")).strip().lower()
+            if name == wanted:
+                return _resolve_reference_source(data, item.get("link"))
+
+    return None, None
+
+
+def _prompt_math_variables(data, inputs, depth, visited):
+    variables = {}
+    if not isinstance(inputs, dict):
+        return variables
+
+    for key, raw_value in inputs.items():
+        key_text = str(key).strip().lower()
+        if key_text in ("a", "b", "c"):
+            variable_name = key_text
+        elif key_text.startswith("values.") and key_text[7:] in ("a", "b", "c"):
+            variable_name = key_text[7:]
+        else:
+            continue
+
+        variables[variable_name] = _resolve_prompt_dict_ref(
+            data,
+            raw_value,
+            _depth=depth + 1,
+            _visited=visited,
+        )
+
+    return variables
+
+
+def _cast_math_output(ntype, slot, value):
+    if value is None:
+        return None
+    if "comfymathexpression" not in ntype:
+        return value
+    if slot == 1:
+        return int(value)
+    if slot == 2:
+        return bool(value)
+    return value
+
+
+def _resolve_prompt_dict_ref(data, ref, _depth=0, _visited=None):
     cached = _cache_get(data, "prompt_dict", ref)
     if cached is not None:
         return cached
+
+    if _depth > 12:
+        return _cache_set(data, "prompt_dict", ref, None)
+
+    if _visited is None:
+        _visited = set()
+    visit_key = repr(ref)
+    if visit_key in _visited:
+        return _cache_set(data, "prompt_dict", ref, None)
+    visited = set(_visited)
+    visited.add(visit_key)
 
     result = None
 
@@ -94,6 +266,12 @@ def _resolve_prompt_dict_ref(data, ref):
                 ntype = str(node.get("class_type", "") or node.get("type", "") or "").lower()
                 meta = node.get("_meta", {}) or {}
                 title = str(meta.get("title", "") or node.get("title", "") or "").lower()
+
+                if "mathexpression" in ntype or "math expression" in title:
+                    expr = inputs.get("expression") if isinstance(inputs, dict) else None
+                    variables = _prompt_math_variables(data, inputs, _depth, visited)
+                    resolved_expr = _resolve_math_expression(expr, variables=variables)
+                    result = _cast_math_output(ntype, ref[1] if len(ref) > 1 else 0, resolved_expr)
 
                 for key in (
                     "value",
@@ -117,12 +295,13 @@ def _resolve_prompt_dict_ref(data, ref):
                     "sampler_name",
                     "scheduler",
                     "sigmas",
-                    "expression",
                 ):
+                    if result is not None:
+                        break
                     if key in inputs:
                         val = inputs.get(key)
                         if isinstance(val, list):
-                            nested = _resolve_prompt_dict_ref(data, val)
+                            nested = _resolve_prompt_dict_ref(data, val, _depth + 1, visited)
                             if nested is not None:
                                 result = nested
                                 break
@@ -139,17 +318,6 @@ def _resolve_prompt_dict_ref(data, ref):
                         result = widgets[slot]
                     else:
                         result = widgets[0]
-
-                if result is None and ("math expression" in title or "mathexpression" in ntype):
-                    expr = inputs.get("expression")
-                    if isinstance(expr, str):
-                        a = _resolve_prompt_dict_ref(data, inputs.get("a"))
-                        if expr.strip().lower() == "a":
-                            result = a
-                        elif expr.strip().lower() == "a/2" and isinstance(a, (int, float)):
-                            result = int(a / 2)
-                        else:
-                            result = expr
 
     return _cache_set(data, "prompt_dict", ref, result)
 

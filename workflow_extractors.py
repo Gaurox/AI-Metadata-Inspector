@@ -40,6 +40,18 @@ def _normalize_flag_text(value):
     return mapping.get(lower, str(disp).strip())
 
 
+def _normalize_positive_count(value):
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if numeric <= 0 or not numeric.is_integer():
+        return None
+    return str(int(numeric))
+
+
 def _set_first(info, key, value, normalizer=None):
     if info.get(key) is not None:
         return
@@ -188,7 +200,19 @@ def collect_node_based_info(data, info):
             scheduler_val = _coerce_display_value(_resolve_value(data, _input_dict_get(inputs, "scheduler")))
             fps_val = _coerce_display_value(_resolve_value(data, _input_dict_get(inputs, "fps")))
             frame_rate_val = _coerce_display_value(_resolve_value(data, _input_dict_get(inputs, "frame_rate")))
-            sigmas_val = _coerce_display_value(_resolve_value(data, _input_dict_get(inputs, "sigmas")))
+            sigmas_val = None
+            if ntype == "manualsigmas":
+                raw_sigmas = _input_dict_get(inputs, "sigmas")
+                if isinstance(raw_sigmas, str):
+                    sigmas_val = _coerce_display_value(raw_sigmas)
+                elif isinstance(raw_sigmas, (tuple, list)) and raw_sigmas:
+                    is_node_ref = (
+                        len(raw_sigmas) == 2
+                        and isinstance(data, dict)
+                        and isinstance(data.get(str(raw_sigmas[0])), dict)
+                    )
+                    if not is_node_ref:
+                        sigmas_val = ", ".join(str(value) for value in raw_sigmas)
             denoise_val = _coerce_display_value(_resolve_value(data, _input_dict_get(inputs, "denoise")))
             add_noise_val = _normalize_flag_text(_resolve_value(data, _input_dict_get(inputs, "add_noise")))
             noise_seed_val = _coerce_display_value(_resolve_value(data, _input_dict_get(inputs, "noise_seed")))
@@ -387,6 +411,21 @@ def collect_node_based_info(data, info):
                 resolved_val = _resolve_workflow_ref(data, [str(node.get("id")), 0])
                 if expr == "a/2" and resolved_val is not None:
                     pass
+
+    if info["length"] is None and "nodes" not in data:
+        for node in nodes:
+            inputs = node_inputs(node)
+            for key in ("length", "frames_number"):
+                raw_value = _input_dict_get(inputs, key)
+                if raw_value is None:
+                    continue
+                resolved = _resolve_value(data, raw_value)
+                normalized = _normalize_positive_count(resolved)
+                if normalized is not None:
+                    info["length"] = normalized
+                    break
+            if info["length"] is not None:
+                break
 
     if info["steps"] is None and info["sigmas"]:
         first_sigmas = info["sigmas"][0]

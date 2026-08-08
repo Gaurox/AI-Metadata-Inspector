@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from workflow_resolver import _resolve_value
+from workflow_resolver import _resolve_input_source, _resolve_value
 from workflow_utils import _input_dict_get, node_inputs, node_title, node_type, node_widgets
 
 
@@ -48,6 +48,12 @@ def _normalize_text_value(value):
         s = value.strip()
         return s if s else None
     return str(value)
+
+
+def _normalize_decimal_value(value):
+    if isinstance(value, float):
+        return str(value)
+    return _normalize_text_value(value)
 
 
 def _iter_nodes_with_ids(data):
@@ -98,12 +104,100 @@ def _get_node_id_value(node):
     return str(node_id)
 
 
+def _resolved_node_input(data, node, *names):
+    inputs = node_inputs(node)
+    for name in names:
+        raw_value = _input_dict_get(inputs, name)
+        if raw_value is None:
+            continue
+        resolved = _resolve_value(data, raw_value)
+        if resolved is not None:
+            return resolved
+    return None
+
+
+def _custom_sampler_components(data, node):
+    """Collect scalar settings from the four object branches of SamplerCustom*."""
+    out = {
+        "noise_seed": None,
+        "add_noise": None,
+        "denoise": None,
+        "steps": None,
+        "cfg": None,
+        "sampler": None,
+        "scheduler": None,
+    }
+
+    noise_node, _ = _resolve_input_source(data, node, "noise")
+    if isinstance(noise_node, dict):
+        noise_type = node_type(noise_node).strip().lower()
+        noise_widgets = node_widgets(noise_node)
+        out["noise_seed"] = _pick_first(
+            _resolved_node_input(data, noise_node, "noise_seed", "seed"),
+            noise_widgets[0] if noise_widgets else None,
+            normalizer=_normalize_seed_value,
+        )
+        if "disablenoise" in noise_type:
+            out["add_noise"] = "disable"
+        elif "randomnoise" in noise_type:
+            out["add_noise"] = "enable"
+
+    guider_node, _ = _resolve_input_source(data, node, "guider")
+    if isinstance(guider_node, dict):
+        guider_type = node_type(guider_node).strip().lower()
+        guider_widgets = node_widgets(guider_node)
+        out["cfg"] = _resolved_node_input(data, guider_node, "cfg", "guidance")
+        if out["cfg"] is None and "cfgguider" in guider_type and guider_widgets:
+            out["cfg"] = guider_widgets[0]
+
+    sampler_node, _ = _resolve_input_source(data, node, "sampler")
+    if isinstance(sampler_node, dict):
+        sampler_type = node_type(sampler_node).strip().lower()
+        sampler_widgets = node_widgets(sampler_node)
+        out["sampler"] = _resolved_node_input(data, sampler_node, "sampler_name")
+        if out["sampler"] is None and "ksamplerselect" in sampler_type and sampler_widgets:
+            out["sampler"] = sampler_widgets[0]
+
+    sigmas_node, _ = _resolve_input_source(data, node, "sigmas")
+    if isinstance(sigmas_node, dict):
+        sigmas_type = node_type(sigmas_node).strip().lower()
+        sigmas_widgets = node_widgets(sigmas_node)
+        out["steps"] = _resolved_node_input(data, sigmas_node, "steps")
+        out["scheduler"] = _resolved_node_input(data, sigmas_node, "scheduler")
+        out["denoise"] = _normalize_decimal_value(
+            _resolved_node_input(
+                data,
+                sigmas_node,
+                "denoise",
+                "denoise_strength",
+                "strength",
+            )
+        )
+
+        if "basicscheduler" in sigmas_type:
+            if out["scheduler"] is None and len(sigmas_widgets) > 0:
+                out["scheduler"] = sigmas_widgets[0]
+            if out["steps"] is None and len(sigmas_widgets) > 1:
+                out["steps"] = sigmas_widgets[1]
+            if out["denoise"] is None and len(sigmas_widgets) > 2:
+                out["denoise"] = _normalize_decimal_value(sigmas_widgets[2])
+        elif "manualsigmas" in sigmas_type and out["scheduler"] is None:
+            out["scheduler"] = "ManualSigmas"
+
+    return out
+
+
 def _extract_sampler_detail(data, node, index: int):
     ntype = node_type(node)
     title = node_title(node)
     ntype_lower = ntype.lower()
     inputs = node_inputs(node)
     widgets = node_widgets(node)
+    components = (
+        _custom_sampler_components(data, node)
+        if "samplercustomadvanced" in ntype_lower or "samplercustom" in ntype_lower
+        else {}
+    )
 
     seed = _pick_first(
         _resolve_value(data, _input_dict_get(inputs, "seed")),
@@ -113,6 +207,7 @@ def _extract_sampler_detail(data, node, index: int):
 
     noise_seed = _pick_first(
         _resolve_value(data, _input_dict_get(inputs, "noise_seed")),
+        components.get("noise_seed"),
         widgets[1] if "ksampleradvanced" in ntype_lower and len(widgets) > 1 else None,
         widgets[0] if ("samplercustomadvanced" in ntype_lower or "samplercustom" in ntype_lower) and len(widgets) > 0 else None,
         normalizer=_normalize_seed_value,
@@ -120,6 +215,7 @@ def _extract_sampler_detail(data, node, index: int):
 
     add_noise = _pick_first(
         _resolve_value(data, _input_dict_get(inputs, "add_noise")),
+        components.get("add_noise"),
         widgets[0] if "ksampleradvanced" in ntype_lower and len(widgets) > 0 else None,
     )
 
@@ -127,29 +223,34 @@ def _extract_sampler_detail(data, node, index: int):
         _resolve_value(data, _input_dict_get(inputs, "denoise")),
         _resolve_value(data, _input_dict_get(inputs, "denoise_strength")),
         _resolve_value(data, _input_dict_get(inputs, "strength")),
+        components.get("denoise"),
         widgets[6] if ntype_lower == "ksampler" and len(widgets) > 6 else None,
     )
 
     steps = _pick_first(
         _resolve_value(data, _input_dict_get(inputs, "steps")),
+        components.get("steps"),
         widgets[3] if "ksampleradvanced" in ntype_lower and len(widgets) > 3 else None,
         widgets[2] if ntype_lower == "ksampler" and len(widgets) > 2 else None,
     )
 
     cfg = _pick_first(
         _resolve_value(data, _input_dict_get(inputs, "cfg")),
+        components.get("cfg"),
         widgets[4] if "ksampleradvanced" in ntype_lower and len(widgets) > 4 else None,
         widgets[3] if ntype_lower == "ksampler" and len(widgets) > 3 else None,
     )
 
     sampler_name = _pick_first(
         _resolve_value(data, _input_dict_get(inputs, "sampler_name")),
+        components.get("sampler"),
         widgets[5] if "ksampleradvanced" in ntype_lower and len(widgets) > 5 else None,
         widgets[4] if ntype_lower == "ksampler" and len(widgets) > 4 else None,
     )
 
     scheduler = _pick_first(
         _resolve_value(data, _input_dict_get(inputs, "scheduler")),
+        components.get("scheduler"),
         widgets[6] if "ksampleradvanced" in ntype_lower and len(widgets) > 6 else None,
         widgets[5] if ntype_lower == "ksampler" and len(widgets) > 5 else None,
     )

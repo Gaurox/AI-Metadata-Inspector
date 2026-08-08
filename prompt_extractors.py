@@ -230,6 +230,39 @@ def _extract_node_prompt(data, node, prompt_dict_mode=False):
     return resolve_workflow_text(data, node)
 
 
+def _extract_semantic_prompt_input(data, node, mode="positive"):
+    """Conservative fallback for nodes that consume prompt text directly."""
+    if not isinstance(node, dict):
+        return None
+
+    inputs = node.get("inputs", {}) or {}
+    if not isinstance(inputs, dict):
+        return None
+
+    _, title = _node_title_and_type(node, prompt_dict_mode=True)
+    title_lower = title.lower()
+
+    if mode == "negative":
+        keys = ("negative_prompt", "negative")
+        if "negative" in title_lower:
+            keys = keys + ("prompt",)
+    else:
+        if "negative" in title_lower:
+            return None
+        keys = ("positive_prompt", "prompt")
+
+    for key in keys:
+        if key not in inputs:
+            continue
+        resolved = resolve_prompt_dict_text(data, inputs.get(key))
+        if isinstance(resolved, str):
+            resolved = resolved.strip()
+            if resolved:
+                return resolved
+
+    return None
+
+
 def extract_from_prompt_dict(data, mode="positive"):
     if not isinstance(data, dict):
         return None
@@ -264,7 +297,18 @@ def extract_from_prompt_dict(data, mode="positive"):
             if best is None and is_negative:
                 best = text_value or ""
 
-    return best
+    if best is not None:
+        return best
+
+    # Some modern conditioning nodes accept the authored prompt directly
+    # instead of using a dedicated CLIPTextEncode node. Keep this fallback
+    # behind the established encoder path and only inspect semantic keys.
+    for _, node in data.items():
+        text_value = _extract_semantic_prompt_input(data, node, mode=mode)
+        if text_value is not None:
+            return text_value
+
+    return None
 
 
 def extract_from_workflow_nodes(data, mode="positive"):
