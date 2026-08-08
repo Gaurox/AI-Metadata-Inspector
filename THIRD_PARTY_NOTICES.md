@@ -6,10 +6,18 @@ AI Metadata Inspector bundles the following third-party components. Each is gove
 
 ## FFmpeg
 
-**Version:** 8.1-essentials_build  
-**Source:** https://www.gyan.dev/ffmpeg/builds/ (Gyan Doshi's Windows builds)  
+**Version:** 8.1.2-essentials_build-www.gyan.dev
+
+**Source:** https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.1.2-essentials_build.zip (Gyan Doshi's Windows builds)
 **Upstream:** https://ffmpeg.org/  
 **License:** GNU General Public License v3.0 or later (GPLv3+)
+
+**Verified package SHA-256:** `db580001caa24ac104c8cb856cd113a87b0a443f7bdf47d8c12b1d740584a2ec`
+**Bundled `ffmpeg.exe` SHA-256:** `1326dde4c84ff1f96fe6b8916c5bed29e163e9b5dccf995f6f3db069d143ec5e`
+
+This stable 8.1.2 build is the minimum security baseline selected for the
+project. The FFmpeg 8.1.2 security advisory lists the backports for
+`CVE-2026-8461` and `CVE-2026-30999`.
 
 This build was compiled with `--enable-gpl --enable-version3`, which makes the binary subject to the GNU General Public License version 3.
 

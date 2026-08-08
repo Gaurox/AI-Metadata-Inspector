@@ -191,6 +191,7 @@ def _run_exiftool_cmd(cmd: list[str]) -> tuple[dict[str, str], str]:
             errors="replace",
             check=False,
             timeout=EXIFTOOL_TIMEOUT_SECONDS,
+            cwd=str(BASE_DIR),
             **get_hidden_subprocess_kwargs(),
         )
     except subprocess.TimeoutExpired:
@@ -232,10 +233,14 @@ def _run_exiftool_cmd(cmd: list[str]) -> tuple[dict[str, str], str]:
 
 
 def _build_exiftool_cmd(file_path: str, tags: list[str], use_utf8_filename: bool) -> list[str]:
-    cmd = [EXIFTOOL, "-j"]
+    # -config "" must precede all normal options to prevent a user profile
+    # from loading arbitrary ExifTool configuration. -- terminates options so
+    # a media filename cannot be parsed as one.
+    cmd = [EXIFTOOL, "-config", "", "-j"]
     if use_utf8_filename:
         cmd.extend(["-charset", "filename=UTF8"])
     cmd.extend(f"-{tag}" for tag in tags)
+    cmd.append("--")
     cmd.append(file_path)
     return cmd
 

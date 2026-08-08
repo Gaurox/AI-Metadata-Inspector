@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "product_version": "1.3.3",
+  "generated_utc": "2026-08-08T22:39:11.4920956Z",
+  "source_commit": "589438705873e5e3e42e445ebf1a2f037e66b956",
+  "components": [
+    {
+      "path": "ffmpeg.exe",
+      "version": "ffmpeg version 8.1.2-essentials_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+      "sha256": "1326dde4c84ff1f96fe6b8916c5bed29e163e9b5dccf995f6f3db069d143ec5e"
+    },
+    {
+      "path": "exiftool.exe",
+      "version": "13.54",
+      "sha256": "3b7bc604426fa3e4ce430a5c4f4c1c1d8ca1221abd0b643aa41c74a4d61998a8"
+    },
+    {
+      "path": "python_embeded\\python.exe",
+      "version": "Python 3.12.10",
+      "sha256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a"
+    }
+  ]
+}

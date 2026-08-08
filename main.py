@@ -25,6 +25,7 @@ from frame_extractor import extract_frames
 from info_builder import build_info_payload
 from info_window import show_info_window
 from prompt_extractors import extract_prompt_data, extract_prompt_data_fast
+from windows_runtime import get_system_executable, show_error_message
 
 
 VALID_MODES = (
@@ -73,27 +74,11 @@ def _write_diagnostic(message: str) -> None:
 
 def _show_visible_error(title: str, message: str) -> None:
     full_message = str(message)
-    try:
-        # Keep the dialog reasonably readable.
-        if len(full_message) > 3500:
-            full_message = full_message[:3500] + "\n...(truncated)"
-        ps_script = (
-            "Add-Type -AssemblyName System.Windows.Forms; "
-            "[System.Windows.Forms.MessageBox]::Show($args[0], $args[1], "
-            "[System.Windows.Forms.MessageBoxButtons]::OK, "
-            "[System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null"
-        )
-        subprocess.run(
-            ["powershell.exe", "-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-Command", ps_script, full_message, title],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=20,
-            **get_hidden_subprocess_kwargs(),
-        )
-    except Exception:
-        pass
+    # Keep the dialog reasonably readable, and never route diagnostic text
+    # through a PowerShell command line.
+    if len(full_message) > 3500:
+        full_message = full_message[:3500] + "\n...(truncated)"
+    show_error_message(title, full_message)
 
 
 def copy_to_clipboard(text: str) -> bool:
@@ -101,13 +86,14 @@ def copy_to_clipboard(text: str) -> bool:
 
     try:
         result = subprocess.run(
-            ["clip.exe"],
+            [get_system_executable("clip.exe")],
             input=text,
             text=True,
             encoding="utf-8",
             errors="replace",
             check=False,
             timeout=5,
+            cwd=str(BASE_DIR),
             **get_hidden_subprocess_kwargs(),
         )
         debug(f"clip.exe returncode={result.returncode} len={len(text)}")
@@ -119,7 +105,7 @@ def copy_to_clipboard(text: str) -> bool:
     try:
         ps = subprocess.run(
             [
-                "powershell.exe",
+                get_system_executable("WindowsPowerShell\\v1.0\\powershell.exe"),
                 "-NoProfile",
                 "-NonInteractive",
                 "-ExecutionPolicy",
@@ -133,6 +119,7 @@ def copy_to_clipboard(text: str) -> bool:
             errors="replace",
             check=False,
             timeout=5,
+            cwd=str(BASE_DIR),
             **get_hidden_subprocess_kwargs(),
         )
         debug(f"powershell clipboard returncode={ps.returncode} len={len(text)}")
@@ -251,10 +238,8 @@ def main():
         debug("FOUND_TAGS=" + ", ".join(tag for tag, _ in found))
 
     if mode == "info":
-        _write_diagnostic("INFO MODE REACHED\nfile=" + str(file_path) + "\nfound_tags=" + str(len(found)))
         try:
             payload = build_info_payload(file_path, found)
-            _write_diagnostic("PAYLOAD BUILT OK\nkeys=" + ", ".join(sorted(payload.keys())))
         except Exception:
             err = traceback.format_exc()
             _write_diagnostic("PAYLOAD BUILD FAILED\n" + err)
@@ -276,7 +261,6 @@ def main():
             sys.exit(71)
 
         if opened:
-            _write_diagnostic("WINDOW OPENED OK")
             debug("EXIT 0: info window opened")
             sys.exit(0)
 

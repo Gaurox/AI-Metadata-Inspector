@@ -5,6 +5,7 @@ Set shell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
 appDir = fso.GetParentFolderName(WScript.ScriptFullName)
+shell.CurrentDirectory = appDir
 pythonExe = appDir & "\python_embeded\pythonw.exe"
 mainPy = appDir & "\main.py"
 

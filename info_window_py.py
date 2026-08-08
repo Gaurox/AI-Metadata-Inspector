@@ -236,7 +236,7 @@ def _is_clean_number(value: Any) -> bool:
 
 def show_info_window_py(payload: dict[str, Any]) -> bool:
     root = tk.Tk()
-    root.title("AI Metadata Inspector v1.3.2")
+    root.title("AI Metadata Inspector v1.3.3")
     icon_path = Path(__file__).resolve().parent / "icons" / "app.ico"
     if icon_path.exists():
         try:

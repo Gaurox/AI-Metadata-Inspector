@@ -4,6 +4,19 @@ Official website: https://gaurox.dev/metadata-inspector/
 
 Website screenshots note: the `screenshots/` folder in this repository is the source of truth for both the README and the Gaurox website page. When screenshots change, sync this folder into the website repository with the shared screenshot sync script used by your local website workspace.
 
+## v1.3.3
+
+Security & Hardening release.
+
+- Removed variable text from PowerShell `-Command` error dialogs.
+- Hardened ExifTool invocation with disabled user configuration, end-of-options handling, explicit system paths, and controlled working directories.
+- Updated bundled FFmpeg to 8.1.2.
+- Improved extraction-lock cleanup on early creation/write failures.
+- Reduced persistent logs of private media paths and added uninstall cleanup.
+- Added component hashes and a release-manifest workflow for better traceability.
+
+Deferred audit items, including SEC-02 and frame staging (FRM-01), remain tracked in `AUDIT_REMEDIATION_TRACKER.md`.
+
 ## v1.3.2
 
 - New application icon integrated across the app window, installer, and `AI - Ai Info` Explorer entry

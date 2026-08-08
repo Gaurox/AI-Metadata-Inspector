@@ -108,7 +108,7 @@ function Show-AIInfoWindow {
        $form.ShowIcon = $true
     }
 
-    $APP_VERSION = "1.3.1"
+    $APP_VERSION = "1.3.3"
     $form.Text = "AI Metadata Inspector v$APP_VERSION"
     $form.StartPosition = "CenterScreen"
     $screenArea = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea

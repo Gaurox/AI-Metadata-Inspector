@@ -13,6 +13,7 @@ from exif_reader import (
     debug,
     get_private_temp_dir,
 )
+from windows_runtime import get_system_executable
 
 
 FRAME_PATTERN = "frame_%06d.png"
@@ -71,13 +72,33 @@ def acquire_output_lock(folder: Path) -> tuple[int, Path] | tuple[None, None]:
         except Exception:
             pass
 
+    fd: int | None = None
+    acquired = False
     try:
         fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_RDWR)
-        os.write(fd, str(os.getpid()).encode("ascii", errors="ignore"))
+        lock_contents = str(os.getpid()).encode("ascii", errors="strict")
+        if os.write(fd, lock_contents) != len(lock_contents):
+            raise OSError("incomplete extraction lock write")
+        acquired = True
         return fd, lock_path
     except FileExistsError:
         debug(f"EXTRACTION LOCK EXISTS: {lock_path}")
         return None, None
+    except OSError as e:
+        debug(f"EXTRACTION LOCK CREATE/WRITE FAILED: {e}")
+        return None, None
+    finally:
+        if not acquired:
+            if fd is not None:
+                try:
+                    os.close(fd)
+                except Exception:
+                    pass
+            if fd is not None:
+                try:
+                    lock_path.unlink(missing_ok=True)
+                except Exception:
+                    pass
 
 
 def release_output_lock(lock_handle: int | None, lock_path: Path | None) -> None:
@@ -228,6 +249,7 @@ def launch_ffmpeg(input_file: Path, output_folder: Path) -> subprocess.Popen:
         cmd,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        cwd=str(get_base_dir()),
         **get_hidden_subprocess_kwargs(),
     )
 
@@ -292,7 +314,7 @@ exit $LASTEXITCODE
             return 6
 
         cmd = [
-            "powershell.exe",
+            get_system_executable("WindowsPowerShell\\v1.0\\powershell.exe"),
             "-NoProfile",
             "-STA",
             "-ExecutionPolicy",
@@ -321,6 +343,7 @@ exit $LASTEXITCODE
                 encoding="utf-8",
                 errors="replace",
                 check=False,
+                cwd=str(get_base_dir()),
                 **get_hidden_subprocess_kwargs(),
             )
         except Exception as e:
@@ -381,11 +404,11 @@ def run_ffmpeg_with_cancel_ui(input_file: Path, output_folder: Path) -> int:
     lock_handle, lock_path = acquire_output_lock(output_folder)
     if lock_handle is None:
         return 8
-    clean_existing_frames(output_folder)
 
     ffmpeg_process: subprocess.Popen | None = None
 
     try:
+        clean_existing_frames(output_folder)
         expected_frame_count = estimate_total_frames(input_file)
 
         ffmpeg_process = launch_ffmpeg(input_file, output_folder)
@@ -438,7 +461,10 @@ def run_ffmpeg_with_cancel_ui(input_file: Path, output_folder: Path) -> int:
     except Exception as e:
         debug(f"EXTRACTION ERROR: {e}")
         terminate_process_if_needed(ffmpeg_process)
-        clean_existing_frames(output_folder)
+        try:
+            clean_existing_frames(output_folder)
+        except Exception as cleanup_error:
+            debug(f"FAILED TO CLEAN FRAMES AFTER EXTRACTION ERROR: {cleanup_error}")
         return 5
     finally:
         release_output_lock(lock_handle, lock_path)

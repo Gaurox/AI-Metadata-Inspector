@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 Output/
+.ffmpeg_update_8_1_2/
 prompt_tool_debug.log
 *.ai_info.txt
 *.ai_info.json
