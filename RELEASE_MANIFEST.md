@@ -29,7 +29,6 @@ exact setup binary. Regenerate all three files after any packaged-input change.
 | Embedded Python | `3.12.10` | `https://www.python.org/` | `python.exe`: `4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a`; `pythonw.exe`: `d72294fb338bc2fc8896d25a7395a4db466425427e1559e77185d5135a830681` |
 
 The FFmpeg source package checksum above is published by the build provider.
-Its upstream 8.1.2 release contains the security fixes required by DEP-01.
 
 ## Required evidence for a release
 
@@ -44,6 +43,3 @@ Its upstream 8.1.2 release contains the security fixes required by DEP-01.
 4. Generate the installer checksum with `tools\generate_checksum.ps1`.
 5. Publish the installer, its `.sha256` sidecar and the generated JSON manifest
    together; record the tag/commit and do not replace an already published asset.
-
-Authenticode signing, SBOM generation and CI enforcement are intentionally not
-claimed here; they remain follow-up work tracked under REL-03.

@@ -12,8 +12,6 @@ Compatibility & reliability release.
 - Better support for modern ComfyUI workflows and samplers, including MiniMax.
 - Updated bundled components and release traceability.
 
-Deferred audit items, including SEC-02 and frame staging (FRM-01), remain tracked in `AUDIT_REMEDIATION_TRACKER.md`.
-
 ## v1.3.2
 
 - New application icon integrated across the app window, installer, and `AI - Ai Info` Explorer entry
