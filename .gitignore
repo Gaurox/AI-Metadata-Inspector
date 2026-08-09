@@ -2,6 +2,8 @@ __pycache__/
 *.pyc
 Output/
 .ffmpeg_update_8_1_2/
+AUDIT_GLOBAL_V1.3.2.md
+AUDIT_REMEDIATION_TRACKER.md
 prompt_tool_debug.log
 *.ai_info.txt
 *.ai_info.json
